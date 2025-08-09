@@ -322,7 +322,7 @@
         <img class="avatar" src="https://api.dicebear.com/7.x/thumbs/svg?seed=Alice" />
         <div class="msg-content">
           <div class="nickname">Alice</div>
-          <div class="bubble">Hello，我在等人上线</div>
+          <div class="bubble">Hello，家人们，今天好吗？</div>
         </div>
       </div>
     </div>
@@ -351,7 +351,8 @@
     let localStream;
     const room = prompt("输入房间号", "room123");
 
-    socket = new WebSocket("ws://localhost:3000"); // ✅ 替换为你的信令服务地址
+    socket = new WebSocket("wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev");
+
 
     socket.onopen = () => {
       socket.send(JSON.stringify({ type: "join", room }));
