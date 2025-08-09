@@ -275,7 +275,102 @@
 
   .actions {
     display: none; /* 隐藏多余按钮，提高沉浸感 */
+  } 
+
+@media screen and (max-width: 768px) {
+  html {
+    font-size: 17px; /* 全局字体放大，原来是 15px 或更小 */
   }
+
+  body {
+    background: #fff;
+  }
+
+  .chat-container {
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .chat-header {
+    padding: 1rem;
+    font-size: 1.1rem;
+  }
+
+  .chat-messages {
+    padding: 1rem;
+    font-size: 1rem;
+    margin-bottom: 70px; /* 留出输入框位置 */
+  }
+
+  .bubble {
+    font-size: 1rem;
+    padding: 0.7rem 1rem;
+  }
+
+  .nickname {
+    font-size: 0.75rem;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .chat-input {
+    padding: 0.7rem;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fafafa;
+    z-index: 10;
+  }
+
+  .chat-input input {
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+  }
+
+  .chat-input button {
+    padding: 0.8rem 1.2rem;
+    font-size: 1rem;
+  }
+
+  .floating-call-btn {
+    top: 0.7rem;
+    left: 0.7rem;
+    width: 48px;
+    height: 48px;
+  }
+
+  .actions {
+    padding: 0.7rem;
+    font-size: 1rem;
+  }
+
+  .actions button {
+    padding: 0.6rem 1rem;
+    font-size: 1rem;
+  }
+
+  .room-card {
+    width: 92%;
+    padding: 1.5rem 1rem;
+    font-size: 1rem;
+  }
+
+  .room-card input,
+  .room-card button {
+    font-size: 1rem;
+    padding: 0.8rem 1rem;
+  }
+}
+
+
 </style>
 
 
@@ -482,6 +577,7 @@
     // 显示聊天 UI（你可以在连接成功后调用）
     document.getElementById("chatContainer").style.display = "flex";
   </script>
+
 
 
 
