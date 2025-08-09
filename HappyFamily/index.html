@@ -95,6 +95,7 @@
 <script>
 let socket, pc, dataChannel, roomId, localStream;
 let isInitiator = false;
+let isCalling = false;
 
 document.getElementById('joinBtn').onclick = joinRoom;
 document.getElementById('sendBtn').onclick = sendMessage;
@@ -107,7 +108,6 @@ function joinRoom() {
   document.getElementById('roomEntry').style.display = 'none';
   document.getElementById('chatContainer').style.display = 'flex';
 
-  // ✅ 替换为你的 WebSocket 地址
   socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
 
   socket.onopen = () => {
@@ -128,12 +128,9 @@ function joinRoom() {
     }
 
     if (msg.type === 'signal') {
-      handleSignal(msg.payload);
+      await handleSignal(msg.payload);
     }
   };
-
-  socket.onerror = (err) => console.error("WebSocket 错误：", err);
-  socket.onclose = () => console.warn("WebSocket 连接关闭");
 }
 
 function createPeer() {
@@ -155,9 +152,8 @@ function createPeer() {
     const remoteAudio = new Audio();
     remoteAudio.srcObject = e.streams[0];
     remoteAudio.autoplay = true;
-    console.log("✅ 收到远程音频流");
-    // 如果有媒体轨道，更新状态为通话中
     showOnlineStatus('calling');
+    console.log("✅ 收到远程音频流");
   };
 
   pc.ondatachannel = e => {
@@ -168,14 +164,9 @@ function createPeer() {
   pc.onconnectionstatechange = () => {
     const state = pc.connectionState;
     console.log("连接状态变化：", state);
-    if(state === 'connected'){
-      // 连接建立但尚未通话时，显示在线
-      if(localStream){
-        showOnlineStatus('calling');
-      } else {
-        showOnlineStatus('online');
-      }
-    } else if(state === 'disconnected' || state === 'failed' || state === 'closed'){
+    if (state === 'connected') {
+      showOnlineStatus(isCalling ? 'calling' : 'online');
+    } else if (['disconnected', 'failed', 'closed'].includes(state)) {
       showOnlineStatus('offline');
     }
   };
@@ -183,28 +174,13 @@ function createPeer() {
   if (isInitiator) {
     dataChannel = pc.createDataChannel('chat');
     setupDataChannel();
-
-    pc.onnegotiationneeded = async () => {
-      try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.send(JSON.stringify({
-          type: 'signal',
-          roomId,
-          payload: { sdp: offer }
-        }));
-        console.log("✅ 发送 SDP offer");
-      } catch (err) {
-        console.error("创建 offer 失败：", err);
-      }
-    };
   }
 }
 
 function setupDataChannel() {
   dataChannel.onopen = () => {
     console.log("✅ DataChannel 已连接");
-    showOnlineStatus('online'); // DataChannel连通即在线
+    showOnlineStatus('online');
   };
   dataChannel.onclose = () => {
     console.log("❌ DataChannel 已关闭");
@@ -214,12 +190,10 @@ function setupDataChannel() {
 }
 
 function showOnlineStatus(status) {
-  // status: 'offline' | 'online' | 'calling'
   const el = document.getElementById('liveIndicator');
   if (!el) return;
 
   el.classList.remove('online', 'calling');
-
   if (status === 'online') {
     el.textContent = '🔴 在线';
     el.classList.add('online');
@@ -257,6 +231,15 @@ async function handleSignal(data) {
     await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
 
     if (data.sdp.type === 'offer') {
+      if (!localStream) {
+        try {
+          await getLocalStream();
+          localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        } catch (e) {
+          console.error("无法获取本地音频：", e);
+        }
+      }
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       socket.send(JSON.stringify({
@@ -276,11 +259,16 @@ async function handleSignal(data) {
 }
 
 async function startCall() {
+  if (isCalling) return;
   try {
     await getLocalStream();
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-    const offer = await pc.createOffer();
+    const alreadyAdded = pc.getSenders().some(s => s.track && localStream.getAudioTracks().includes(s.track));
+    if (!alreadyAdded) {
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    }
+
+    const offer = await pc.createOffer({ offerToReceiveAudio: true });
     await pc.setLocalDescription(offer);
     socket.send(JSON.stringify({
       type: 'signal',
@@ -288,7 +276,8 @@ async function startCall() {
       payload: { sdp: offer }
     }));
     console.log("🎤 语音通话发起成功");
-    showOnlineStatus('calling'); // 通话状态
+    isCalling = true;
+    showOnlineStatus('calling');
   } catch (err) {
     alert("语音通话失败：" + err.message);
   }
@@ -296,26 +285,16 @@ async function startCall() {
 
 async function getLocalStream() {
   if (!localStream) {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000,
-          channelCount: 1,
-          sampleSize: 16
-        }
-      });
-      console.log("🎙️ 麦克风获取成功");
-    } catch (err) {
-      alert("获取麦克风失败: " + err.message);
-      throw err;
-    }
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+    console.log("🎙️ 麦克风获取成功");
   }
 }
 </script>
-
 </body>
-
 </html> 
