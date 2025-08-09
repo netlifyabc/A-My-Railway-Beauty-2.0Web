@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>简易 WebRTC 聊天</title>
   <style>
     html, body {
@@ -28,11 +28,13 @@
       color: white;
       text-align: center;
       font-weight: bold;
+      position: relative;
     }
     .chat-messages {
       flex: 1;
       padding: 10px;
       overflow-y: auto;
+      background: white;
     }
     .chat-input {
       display: flex;
@@ -45,6 +47,21 @@
     }
     .chat-input button {
       padding: 8px;
+      margin-left: 5px;
+    }
+    .live-status {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      font-size: 14px;
+      color: gray;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+    .live-status.online {
+      color: red;
     }
   </style>
 </head>
@@ -60,7 +77,10 @@
 
 <!-- 聊天界面 -->
 <div class="chat-container" id="chatContainer">
-  <div class="chat-header">房间中（支持语音+文字）</div>
+  <div class="chat-header">
+    房间中（支持语音+文字）
+    <div id="liveIndicator" class="live-status">⚫ 对方离线</div>
+  </div>
   <div class="chat-messages" id="messages"></div>
   <div class="chat-input">
     <input id="msgInput" placeholder="输入消息..." />
@@ -84,7 +104,7 @@ function joinRoom() {
   document.getElementById('roomEntry').style.display = 'none';
   document.getElementById('chatContainer').style.display = 'flex';
 
-  // 替换为你的 WebSocket 服务地址
+  // ✅ 替换为你的 WebSocket 地址
   socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
 
   socket.onopen = () => {
@@ -132,11 +152,18 @@ function createPeer() {
     const remoteAudio = new Audio();
     remoteAudio.srcObject = e.streams[0];
     remoteAudio.autoplay = true;
+    console.log("✅ 收到远程音频流");
   };
 
   pc.ondatachannel = e => {
     dataChannel = e.channel;
     setupDataChannel();
+  };
+
+  pc.onconnectionstatechange = () => {
+    const state = pc.connectionState;
+    console.log("连接状态变化：", state);
+    showOnlineStatus(state === 'connected');
   };
 
   if (isInitiator) {
@@ -152,6 +179,7 @@ function createPeer() {
           roomId,
           payload: { sdp: offer }
         }));
+        console.log("✅ 发送 SDP offer");
       } catch (err) {
         console.error("创建 offer 失败：", err);
       }
@@ -160,8 +188,28 @@ function createPeer() {
 }
 
 function setupDataChannel() {
-  dataChannel.onopen = () => console.log("✅ DataChannel 已连接");
+  dataChannel.onopen = () => {
+    console.log("✅ DataChannel 已连接");
+    showOnlineStatus(true);
+  };
+  dataChannel.onclose = () => {
+    console.log("❌ DataChannel 已关闭");
+    showOnlineStatus(false);
+  };
   dataChannel.onmessage = e => appendMessage(e.data, false);
+}
+
+function showOnlineStatus(isOnline) {
+  const el = document.getElementById('liveIndicator');
+  if (!el) return;
+
+  if (isOnline) {
+    el.textContent = '🔴 LIVE | 对方在线';
+    el.classList.add('online');
+  } else {
+    el.textContent = '⚫ 对方离线';
+    el.classList.remove('online');
+  }
 }
 
 function sendMessage() {
@@ -185,9 +233,8 @@ function appendMessage(txt, isMe) {
 async function handleSignal(data) {
   if (data.sdp) {
     await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+
     if (data.sdp.type === 'offer') {
-      await getLocalStream();
-      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       socket.send(JSON.stringify({
@@ -195,27 +242,33 @@ async function handleSignal(data) {
         roomId,
         payload: { sdp: answer }
       }));
+      console.log("✅ 回复 SDP answer");
     }
   } else if (data.candidate) {
     try {
       await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
     } catch (err) {
-      console.warn('添加 ICE 出错：', err);
+      console.warn('❗ 添加 ICE 出错：', err);
     }
   }
 }
 
 async function startCall() {
-  await getLocalStream();
-  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  try {
+    await getLocalStream();
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  socket.send(JSON.stringify({
-    type: 'signal',
-    roomId,
-    payload: { sdp: offer }
-  }));
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socket.send(JSON.stringify({
+      type: 'signal',
+      roomId,
+      payload: { sdp: offer }
+    }));
+    console.log("🎤 语音通话发起成功");
+  } catch (err) {
+    alert("语音通话失败：" + err.message);
+  }
 }
 
 async function getLocalStream() {
@@ -231,21 +284,14 @@ async function getLocalStream() {
           sampleSize: 16
         }
       });
+      console.log("🎙️ 麦克风获取成功");
     } catch (err) {
       alert("获取麦克风失败: " + err.message);
+      throw err;
     }
   }
 }
 </script>
 
-
-
-
-
-
-
-
-
-
 </body>
-</html>
+</html> 
