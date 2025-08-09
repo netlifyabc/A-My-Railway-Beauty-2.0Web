@@ -81,7 +81,6 @@
   </div>
 </div>
 
-
 <script>
 let socket, pc, dataChannel, roomId, localStream;
 let isInitiator = false;
@@ -169,15 +168,9 @@ function createPeer() {
     updateStatus('calling');
   };
 
-  pc.ondatachannel = e => {
-    dataChannel = e.channel;
-    setupDataChannel();
-  };
-
   pc.onconnectionstatechange = () => {
     const state = pc.connectionState;
     console.log("连接状态变化：", state);
-
     if (state === 'connected') {
       updateStatus(localStream ? 'calling' : 'connected');
     } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
@@ -188,6 +181,12 @@ function createPeer() {
   if (isInitiator) {
     dataChannel = pc.createDataChannel('chat');
     setupDataChannel();
+  } else {
+    pc.ondatachannel = (e) => {
+      console.log("📩 收到 DataChannel");
+      dataChannel = e.channel;
+      setupDataChannel();
+    };
   }
 }
 
@@ -208,7 +207,17 @@ function setupDataChannel() {
 function sendMessage() {
   const input = document.getElementById('msgInput');
   const txt = input.value.trim();
-  if (!txt || !dataChannel || dataChannel.readyState !== 'open') return;
+  if (!txt) return;
+
+  if (!dataChannel) {
+    console.warn("❌ DataChannel 不存在");
+    return;
+  }
+
+  if (dataChannel.readyState !== 'open') {
+    console.warn("❌ DataChannel 未连接，状态：" + dataChannel.readyState);
+    return;
+  }
 
   dataChannel.send(txt);
   appendMessage(txt, true);
@@ -265,6 +274,8 @@ async function startCall() {
   }
 }
 
+
+
 async function getLocalStream() {
   if (!localStream) {
     try {
@@ -285,6 +296,4 @@ async function getLocalStream() {
 </script>
 
 </body>
-
-
-</html>  
+</html>
