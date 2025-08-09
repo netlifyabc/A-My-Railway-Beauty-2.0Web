@@ -50,7 +50,7 @@
 </head>
 <body>
 
-<!-- 房间号输入 -->
+<!-- 加入房间界面 -->
 <div id="roomEntry">
   <div>
     <input id="roomInput" placeholder="输入房间号" />
@@ -84,23 +84,26 @@ function joinRoom() {
   document.getElementById('roomEntry').style.display = 'none';
   document.getElementById('chatContainer').style.display = 'flex';
 
-  // 替换为你的 WebSocket 服务地址
-  socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
+  // ⚠️ 替换为你的 WebSocket 地址
+socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
+
 
   socket.onopen = () => {
+    console.log("连接信令服务器成功");
     socket.send(JSON.stringify({ type: 'join', roomId }));
   };
 
   socket.onmessage = async (event) => {
     const msg = JSON.parse(event.data);
+    console.log("收到消息：", msg);
 
     if (msg.type === 'joined') {
-      isInitiator = msg.initiator || false;
+      isInitiator = msg.initiator; // 后端应返回此字段
       createPeer();
     }
 
     if (msg.type === 'peer-joined') {
-      isInitiator = true;
+      isInitiator = true; // 先加入的人是 initiator
       createPeer();
     }
 
@@ -110,13 +113,12 @@ function joinRoom() {
   };
 
   socket.onerror = (err) => console.error("WebSocket 错误：", err);
-  socket.onclose = () => console.warn("WebSocket 连接关闭");
+  socket.onclose = () => console.warn("WebSocket 断开");
 }
 
 function createPeer() {
-  pc = new RTCPeerConnection({
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-  });
+  console.log("创建 RTCPeerConnection");
+  pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
 
   pc.onicecandidate = e => {
     if (e.candidate) {
@@ -132,43 +134,26 @@ function createPeer() {
     const remoteAudio = new Audio();
     remoteAudio.srcObject = e.streams[0];
     remoteAudio.autoplay = true;
+    console.log("收到远程音频流");
   };
 
   pc.ondatachannel = e => {
     dataChannel = e.channel;
-    setupDataChannel();
+    dataChannel.onmessage = e => appendMessage(e.data, false);
+    console.log("DataChannel 连接成功");
   };
 
   if (isInitiator) {
     dataChannel = pc.createDataChannel('chat');
-    setupDataChannel();
-
-    pc.onnegotiationneeded = async () => {
-      try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.send(JSON.stringify({
-          type: 'signal',
-          roomId,
-          payload: { sdp: offer }
-        }));
-      } catch (err) {
-        console.error("创建 offer 失败：", err);
-      }
-    };
+    dataChannel.onmessage = e => appendMessage(e.data, false);
+    console.log("创建 DataChannel");
   }
-}
-
-function setupDataChannel() {
-  dataChannel.onopen = () => console.log("✅ DataChannel 已连接");
-  dataChannel.onmessage = e => appendMessage(e.data, false);
 }
 
 function sendMessage() {
   const input = document.getElementById('msgInput');
   const txt = input.value.trim();
   if (!txt || !dataChannel || dataChannel.readyState !== 'open') return;
-
   dataChannel.send(txt);
   appendMessage(txt, true);
   input.value = '';
@@ -208,7 +193,6 @@ async function handleSignal(data) {
 async function startCall() {
   await getLocalStream();
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
   socket.send(JSON.stringify({
@@ -216,21 +200,14 @@ async function startCall() {
     roomId,
     payload: { sdp: offer }
   }));
+  console.log("发送 offer 发起语音");
 }
 
 async function getLocalStream() {
   if (!localStream) {
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000,
-          channelCount: 1,
-          sampleSize: 16
-        }
-      });
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("获取麦克风成功");
     } catch (err) {
       alert("获取麦克风失败: " + err.message);
     }
@@ -238,14 +215,6 @@ async function getLocalStream() {
 }
 </script>
 
-
-
-
-
-
-
-
-
-
 </body>
+
 </html>
