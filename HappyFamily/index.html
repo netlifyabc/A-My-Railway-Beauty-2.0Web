@@ -1,7 +1,3 @@
-这是 完整版 
-
-你优化一下 ： 
-
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -32,11 +28,19 @@
       color: white;
       text-align: center;
       font-weight: bold;
+      position: relative;
+    }
+    #statusIndicator {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      font-size: 14px;
     }
     .chat-messages {
       flex: 1;
       padding: 10px;
       overflow-y: auto;
+      background: white;
     }
     .chat-input {
       display: flex;
@@ -49,12 +53,13 @@
     }
     .chat-input button {
       padding: 8px;
+      margin-left: 5px;
     }
   </style>
 </head>
 <body>
 
-<!-- 加入房间界面 -->
+<!-- 房间输入 -->
 <div id="roomEntry">
   <div>
     <input id="roomInput" placeholder="输入房间号" />
@@ -64,7 +69,10 @@
 
 <!-- 聊天界面 -->
 <div class="chat-container" id="chatContainer">
-  <div class="chat-header">房间中（支持语音+文字）</div>
+  <div class="chat-header">
+    房间中（支持语音+文字）
+    <span id="statusIndicator">⚫ 离线</span>
+  </div>
   <div class="chat-messages" id="messages"></div>
   <div class="chat-input">
     <input id="msgInput" placeholder="输入消息..." />
@@ -76,10 +84,27 @@
 <script>
 let socket, pc, dataChannel, roomId, localStream;
 let isInitiator = false;
+let currentStatus = 'disconnected'; // disconnected | connected | calling
 
 document.getElementById('joinBtn').onclick = joinRoom;
 document.getElementById('sendBtn').onclick = sendMessage;
 document.getElementById('callBtn').onclick = startCall;
+
+function updateStatus(status) {
+  currentStatus = status;
+  const el = document.getElementById('statusIndicator');
+  if (!el) return;
+  if (status === 'connected') {
+    el.textContent = '🟢 在线';
+    el.style.color = 'green';
+  } else if (status === 'calling') {
+    el.textContent = '🔴 通话中';
+    el.style.color = 'red';
+  } else {
+    el.textContent = '⚫ 离线';
+    el.style.color = 'gray';
+  }
+}
 
 function joinRoom() {
   roomId = document.getElementById('roomInput').value.trim();
@@ -88,9 +113,8 @@ function joinRoom() {
   document.getElementById('roomEntry').style.display = 'none';
   document.getElementById('chatContainer').style.display = 'flex';
 
-  // ⚠️ 替换为你的 WebSocket 地址
-socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
-
+  // 替换为你的 WebSocket 地址
+  socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
 
   socket.onopen = () => {
     console.log("连接信令服务器成功");
@@ -99,15 +123,14 @@ socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0f
 
   socket.onmessage = async (event) => {
     const msg = JSON.parse(event.data);
-    console.log("收到消息：", msg);
 
     if (msg.type === 'joined') {
-      isInitiator = msg.initiator; // 后端应返回此字段
+      isInitiator = msg.initiator || false;
       createPeer();
     }
 
     if (msg.type === 'peer-joined') {
-      isInitiator = true; // 先加入的人是 initiator
+      isInitiator = true;
       createPeer();
     }
 
@@ -117,12 +140,16 @@ socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0f
   };
 
   socket.onerror = (err) => console.error("WebSocket 错误：", err);
-  socket.onclose = () => console.warn("WebSocket 断开");
+  socket.onclose = () => {
+    console.warn("WebSocket 断开");
+    updateStatus('disconnected');
+  };
 }
 
 function createPeer() {
-  console.log("创建 RTCPeerConnection");
-  pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+  pc = new RTCPeerConnection({
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+  });
 
   pc.onicecandidate = e => {
     if (e.candidate) {
@@ -139,25 +166,51 @@ function createPeer() {
     remoteAudio.srcObject = e.streams[0];
     remoteAudio.autoplay = true;
     console.log("收到远程音频流");
+    updateStatus('calling');
+  };
+
+  pc.onconnectionstatechange = () => {
+    const state = pc.connectionState;
+    console.log("连接状态变化：", state);
+    if (state === 'connected') {
+      if (localStream) {
+        updateStatus('calling');
+      } else {
+        updateStatus('connected');
+      }
+    } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+      updateStatus('disconnected');
+    }
   };
 
   pc.ondatachannel = e => {
     dataChannel = e.channel;
-    dataChannel.onmessage = e => appendMessage(e.data, false);
-    console.log("DataChannel 连接成功");
+    setupDataChannel();
   };
 
   if (isInitiator) {
     dataChannel = pc.createDataChannel('chat');
-    dataChannel.onmessage = e => appendMessage(e.data, false);
-    console.log("创建 DataChannel");
+    setupDataChannel();
   }
+}
+
+function setupDataChannel() {
+  dataChannel.onopen = () => {
+    console.log("✅ DataChannel 已连接");
+    if (currentStatus !== 'calling') updateStatus('connected');
+  };
+  dataChannel.onclose = () => {
+    console.log("❌ DataChannel 已关闭");
+    updateStatus('disconnected');
+  };
+  dataChannel.onmessage = e => appendMessage(e.data, false);
 }
 
 function sendMessage() {
   const input = document.getElementById('msgInput');
   const txt = input.value.trim();
   if (!txt || !dataChannel || dataChannel.readyState !== 'open') return;
+
   dataChannel.send(txt);
   appendMessage(txt, true);
   input.value = '';
@@ -195,25 +248,31 @@ async function handleSignal(data) {
 }
 
 async function startCall() {
-  await getLocalStream();
-  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  socket.send(JSON.stringify({
-    type: 'signal',
-    roomId,
-    payload: { sdp: offer }
-  }));
-  console.log("发送 offer 发起语音");
+  try {
+    await getLocalStream();
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socket.send(JSON.stringify({
+      type: 'signal',
+      roomId,
+      payload: { sdp: offer }
+    }));
+    console.log("🎤 语音通话发起成功");
+    updateStatus('calling');
+  } catch (err) {
+    alert("语音通话失败：" + err.message);
+  }
 }
 
 async function getLocalStream() {
   if (!localStream) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log("获取麦克风成功");
+      console.log("🎙️ 麦克风获取成功");
     } catch (err) {
       alert("获取麦克风失败: " + err.message);
+      throw err;
     }
   }
 }
@@ -223,4 +282,5 @@ async function getLocalStream() {
 
 
 
-</html>
+
+</html>  
