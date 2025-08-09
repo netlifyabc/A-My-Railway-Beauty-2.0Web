@@ -63,6 +63,9 @@
     .live-status.online {
       color: red;
     }
+    .live-status.calling {
+      color: green;
+    }
   </style>
 </head>
 <body>
@@ -153,6 +156,8 @@ function createPeer() {
     remoteAudio.srcObject = e.streams[0];
     remoteAudio.autoplay = true;
     console.log("✅ 收到远程音频流");
+    // 如果有媒体轨道，更新状态为通话中
+    showOnlineStatus('calling');
   };
 
   pc.ondatachannel = e => {
@@ -163,7 +168,16 @@ function createPeer() {
   pc.onconnectionstatechange = () => {
     const state = pc.connectionState;
     console.log("连接状态变化：", state);
-    showOnlineStatus(state === 'connected');
+    if(state === 'connected'){
+      // 连接建立但尚未通话时，显示在线
+      if(localStream){
+        showOnlineStatus('calling');
+      } else {
+        showOnlineStatus('online');
+      }
+    } else if(state === 'disconnected' || state === 'failed' || state === 'closed'){
+      showOnlineStatus('offline');
+    }
   };
 
   if (isInitiator) {
@@ -190,25 +204,33 @@ function createPeer() {
 function setupDataChannel() {
   dataChannel.onopen = () => {
     console.log("✅ DataChannel 已连接");
-    showOnlineStatus(true);
+    showOnlineStatus('online'); // DataChannel连通即在线
   };
   dataChannel.onclose = () => {
     console.log("❌ DataChannel 已关闭");
-    showOnlineStatus(false);
+    showOnlineStatus('offline');
   };
   dataChannel.onmessage = e => appendMessage(e.data, false);
 }
 
-function showOnlineStatus(isOnline) {
+function showOnlineStatus(status) {
+  // status: 'offline' | 'online' | 'calling'
   const el = document.getElementById('liveIndicator');
   if (!el) return;
 
-  if (isOnline) {
-    el.textContent = '🔴 LIVE | 对方在线';
+  el.classList.remove('online', 'calling');
+
+  if (status === 'online') {
+    el.textContent = '🔴 在线';
     el.classList.add('online');
+    el.style.color = 'red';
+  } else if (status === 'calling') {
+    el.textContent = '🟢 通话中';
+    el.classList.add('calling');
+    el.style.color = 'green';
   } else {
-    el.textContent = '⚫ 对方离线';
-    el.classList.remove('online');
+    el.textContent = '⚫ 离线';
+    el.style.color = 'gray';
   }
 }
 
@@ -266,6 +288,7 @@ async function startCall() {
       payload: { sdp: offer }
     }));
     console.log("🎤 语音通话发起成功");
+    showOnlineStatus('calling'); // 通话状态
   } catch (err) {
     alert("语音通话失败：" + err.message);
   }
@@ -294,4 +317,5 @@ async function getLocalStream() {
 </script>
 
 </body>
+
 </html> 
