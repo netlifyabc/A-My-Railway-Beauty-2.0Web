@@ -3,366 +3,282 @@
 <head>
   <meta charset="UTF-8" />
   <title>WebRTC 聊天 + 语音通话</title>
+
   <style>
-    body {
-      margin: 0;
-      font-family: "Helvetica Neue", sans-serif;
-      background: #e5e5e5;
-    }
-
-    .chat-container {
-      max-width: 600px;
-      margin: 30px auto;
-      background: #fff;
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      height: 80vh;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      overflow: hidden;
-      position: relative; /* 方便浮动按钮绝对定位 */
-    }
-
-    .chat-header {
-      background: #007aff;
-      color: white;
-      padding: 15px;
-      font-size: 18px;
-      text-align: center;
-    }
-
-    .chat-messages {
-      flex: 1;
-      padding: 15px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    /* 消息行 */
-    .msg-row {
-      display: flex;
-      align-items: flex-end;
-      gap: 8px;
-    }
-
-    .msg-row.own {
-      justify-content: flex-end;
-    }
-
-    /* 头像 */
-    .avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    /* 消息内容容器 */
-    .msg-content {
-      display: flex;
-      flex-direction: column;
-      max-width: 65%;
-    }
-
-    /* 昵称 */
-    .nickname {
-      font-size: 12px;
-      color: #555;
-      margin-bottom: 4px;
-      user-select: none;
-    }
-
-    /* 自己的昵称隐藏 */
-    .msg-row.own .nickname {
-      display: none;
-    }
-
-    /* 气泡 */
-    .bubble {
-      padding: 10px 14px;
-      border-radius: 16px;
-      font-size: 15px;
-      line-height: 1.4;
-      word-wrap: break-word;
-      background: #f1f0f0;
-    }
-
-    .msg-row.own .bubble {
-      background: #daf8cb;
-      border-bottom-right-radius: 4px;
-    }
-
-    .msg-row.other .bubble {
-      background: #f1f0f0;
-      border-bottom-left-radius: 4px;
-    }
-
-    .chat-input {
-      display: flex;
-      padding: 10px;
-      border-top: 1px solid #ddd;
-      background: #fafafa;
-    }
-
-    .chat-input input {
-      flex: 1;
-      padding: 10px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 20px;
-      outline: none;
-    }
-
-    .chat-input button {
-      margin-left: 10px;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 20px;
-      background: #007aff;
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .actions {
-      text-align: center;
-      padding: 10px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      justify-content: center;
-    }
-
-    .actions button {
-      margin: 5px;
-      padding: 8px 16px;
-      border-radius: 20px;
-      border: none;
-      background: #4CAF50;
-      color: white;
-      cursor: pointer;
-    }
-
-    .actions button[title="复制房间链接"] {
-      background: transparent;
-      border: none;
-      font-size: 20px;
-      color: #bbb;
-      cursor: pointer;
-      transition: color 0.2s ease;
-      user-select: none;
-      margin: 0;
-    }
-
-    .actions button[title="复制房间链接"]:hover {
-      color: #007aff;
-    }
-
-    /* 浮动通话按钮 */
-    .floating-call-btn {
-      position: absolute;
-      top: 18px;
-      left: 18px;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: rgba(250, 248, 245, 0.6);
-      border: 1.5px solid rgba(210, 205, 198, 0.4);
-      box-shadow:
-        0 6px 12px rgba(210, 205, 198, 0.2),
-        inset 0 1px 0 rgba(255 255 255 / 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition:
-        transform 0.25s ease,
-        box-shadow 0.25s ease,
-        background 0.25s ease;
-      z-index: 10;
-    }
-
-    .floating-call-btn svg path {
-      stroke: #b9b2a6;
-      stroke-width: 2.2;
-      fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    /* 通话中状态样式 */
-    .floating-call-btn.active-call {
-      background: rgba(198, 239, 217, 0.85);
-      border-color: rgba(120, 200, 140, 0.7);
-      box-shadow:
-        0 0 8px 4px rgba(120, 200, 140, 0.4),
-        inset 0 1px 0 rgba(255 255 255 / 0.95);
-      color: #2f6f3e;
-      animation: pulse 2.5s infinite ease-in-out;
-    }
-
-    .floating-call-btn.active-call:hover {
-      background: rgba(180, 230, 200, 0.95);
-      box-shadow:
-        0 0 12px 6px rgba(90, 180, 120, 0.6),
-        inset 0 1px 0 rgba(255 255 255 / 1);
-      transform: scale(1.1);
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        box-shadow:
-          0 0 8px 4px rgba(120, 200, 140, 0.4),
-          inset 0 1px 0 rgba(255 255 255 / 0.95);
-      }
-      50% {
-        box-shadow:
-          0 0 12px 8px rgba(120, 200, 140, 0.7),
-          inset 0 1px 0 rgba(255 255 255 / 0.95);
-      }
-    }
-
-    .floating-call-btn.active-call svg path {
-      stroke: #2f6f3e;
-    }
-
-    /* 房间号输入卡片样式保持不变 */
-    .room-entry {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background: linear-gradient(145deg, #f6f4f1, #e5e3e0);
-      font-family: "Helvetica Neue", sans-serif;
-    }
-
-    .room-card {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-radius: 18px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-      padding: 32px 24px;
-      width: 100%;
-      max-width: 320px;
-      text-align: center;
-      border: 1px solid rgba(210, 210, 210, 0.4);
-      box-sizing: border-box;
-    }
-
-    .room-card input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 12px 16px;
-      font-size: 15px;
-      border: 1px solid #ccc;
-      border-radius: 24px;
-      margin-bottom: 20px;
-      outline: none;
-      transition: border 0.3s ease;
-      background-color: #fff;
-    }
-
-    .room-card input:focus {
-      border-color: #007aff;
-    }
-
-    .room-card button {
-      width: 100%;
-      padding: 10px 0;
-      background: #007aff;
-      color: white;
-      font-size: 15px;
-      font-weight: 500;
-      border: none;
-      border-radius: 24px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-
-    .room-card button:hover {
-      background: #0066d8;
-    }
-
-    #roomEntry {
-      display: flex !important;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      width: 100vw;
-      background: linear-gradient(145deg, #f6f4f1, #e5e3e0);
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 1000;
-    }
-
-
-    @media screen and (max-width: 768px) {
-  body {
-    background: #fff;
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: "Helvetica Neue", sans-serif;
+    background: #ffffff;
+    -webkit-overflow-scrolling: touch;
   }
 
   .chat-container {
-    margin: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100vw;
     height: 100vh;
-    max-width: 100vw;
-    border-radius: 0;
-    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    z-index: 100;
   }
 
   .chat-header {
-    padding: 12px;
-    font-size: 16px;
+    height: 52px;
+    background: #f8f8f8;
+    color: #222;
+    font-size: 17px;
+    font-weight: 600;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #ddd;
+    flex-shrink: 0;
   }
 
   .chat-messages {
-    padding: 10px;
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px 80px; /* 留出底部输入框空间 */
+    background: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: 100%;
+  }
+
+  .msg-row.own {
+    justify-content: flex-end;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .msg-content {
+    display: flex;
+    flex-direction: column;
+    max-width: 80%;
+  }
+
+  .nickname {
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 4px;
+    user-select: none;
+  }
+
+  .msg-row.own .nickname {
+    display: none;
+  }
+
+  .bubble {
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 1.5;
+    word-break: break-word;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+    transition: background 0.3s ease;
+  }
+
+  .msg-row.own .bubble {
+    background: #95ec69;
+    color: #000;
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg-row.other .bubble {
+    background: #ffffff;
+    color: #000;
+    border-bottom-left-radius: 4px;
   }
 
   .chat-input {
-    padding: 8px;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    background: #fafafa;
-    z-index: 5;
-  }
-
-  .chat-container .chat-messages {
-    margin-bottom: 60px; /* 留出底部输入框的空间 */
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    background: #fff;
+    border-top: 1px solid #ddd;
+    z-index: 200;
   }
 
   .chat-input input {
-    padding: 8px 12px;
-    font-size: 14px;
+    flex: 1;
+    padding: 10px 16px;
+    font-size: 16px;
+    border-radius: 24px;
+    border: 1px solid #ccc;
+    outline: none;
+    background: #f7f7f7;
   }
 
   .chat-input button {
-    padding: 8px 12px;
-    font-size: 14px;
+    margin-left: 10px;
+    padding: 10px 16px;
+    font-size: 16px;
+    background: #007aff;
+    border: none;
+    border-radius: 20px;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
   }
 
   .floating-call-btn {
-    top: 10px;
-    left: 10px;
-    width: 50px;
-    height: 50px;
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(250, 248, 245, 0.6);
+    border: 1.5px solid rgba(210, 205, 198, 0.4);
+    box-shadow:
+      0 6px 12px rgba(210, 205, 198, 0.2),
+      inset 0 1px 0 rgba(255 255 255 / 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease,
+      background 0.25s ease;
+  }
+
+  .floating-call-btn svg path {
+    stroke: #b9b2a6;
+    stroke-width: 2.2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .floating-call-btn.active-call {
+    background: rgba(198, 239, 217, 0.85);
+    border-color: rgba(120, 200, 140, 0.7);
+    box-shadow:
+      0 0 8px 4px rgba(120, 200, 140, 0.4),
+      inset 0 1px 0 rgba(255 255 255 / 0.95);
+    color: #2f6f3e;
+    animation: pulse 2.5s infinite ease-in-out;
+  }
+
+  .floating-call-btn.active-call svg path {
+    stroke: #2f6f3e;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 8px 4px rgba(120, 200, 140, 0.4),
+        inset 0 1px 0 rgba(255 255 255 / 0.95);
+    }
+    50% {
+      box-shadow:
+        0 0 12px 8px rgba(120, 200, 140, 0.7),
+        inset 0 1px 0 rgba(255 255 255 / 0.95);
+    }
+  }
+
+  /* 房间入口样式不变 */
+  .room-entry {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: linear-gradient(145deg, #f6f4f1, #e5e3e0);
+    font-family: "Helvetica Neue", sans-serif;
   }
 
   .room-card {
-    width: 90%;
-    padding: 24px 16px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    padding: 32px 24px;
+    width: 100%;
+    max-width: 320px;
+    text-align: center;
+    border: 1px solid rgba(210, 210, 210, 0.4);
+    box-sizing: border-box;
   }
-}
 
-  </style>
+  .room-card input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 16px;
+    font-size: 15px;
+    border: 1px solid #ccc;
+    border-radius: 24px;
+    margin-bottom: 20px;
+    outline: none;
+    transition: border 0.3s ease;
+    background-color: #fff;
+  }
+
+  .room-card input:focus {
+    border-color: #007aff;
+  }
+
+  .room-card button {
+    width: 100%;
+    padding: 10px 0;
+    background: #007aff;
+    color: white;
+    font-size: 15px;
+    font-weight: 500;
+    border: none;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+
+  .room-card button:hover {
+    background: #0066d8;
+  }
+
+  #roomEntry {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    width: 100vw;
+    background: linear-gradient(145deg, #f6f4f1, #e5e3e0);
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+  }
+
+  .actions {
+    display: none; /* 隐藏多余按钮，提高沉浸感 */
+  }
+</style>
+
+
 </head>
 <body>
 
@@ -566,5 +482,9 @@
     // 显示聊天 UI（你可以在连接成功后调用）
     document.getElementById("chatContainer").style.display = "flex";
   </script>
+
+
+
+
 </body>
 </html> 
