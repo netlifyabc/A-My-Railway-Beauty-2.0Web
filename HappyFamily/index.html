@@ -2,7 +2,10 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <title>WebRTC 聊天 + 语音通话</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>简易 WebRTC 聊天</title>
+  <!-- CSS（使用你原有的，不重复粘贴） -->
+
 
   <style>
   html, body {
@@ -372,219 +375,193 @@
   }
 }
 
-</style>
+</style> 
 
 
 </head>
 <body>
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-
-  <!-- 聊天界面（初始隐藏） -->
-  <div class="chat-container" style="display: none;" id="chatContainer">
-    <div class="chat-header">群聊（支持语音）</div>
-
-    <!-- 浮动语音通话按钮 -->
-    <button class="floating-call-btn" onclick="start()" aria-label="发起语音通话" title="发起语音通话">
-      <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-        <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.11-.21 11.36 11.36 0 003.58 1.14 1 1 0 01.89 1v3.37a1 1 0 01-1 1A17 17 0 013 6a1 1 0 011-1h3.38a1 1 0 011 .89 11.36 11.36 0 001.14 3.58 1 1 0 01-.21 1.11l-2.7 2.21z"/>
-      </svg>
-    </button>
-
-
-        <div class="chat-messages" id="messages">
-      <div class="msg-row other">
-        <img class="avatar" src="https://api.dicebear.com/7.x/thumbs/svg?seed=Alice" />
-        <div class="msg-content">
-          <div class="nickname">Alice</div>
-          <div class="bubble">Hello，家人们，今天好吗？</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="chat-input">
-      <input type="text" id="msgInput" placeholder="输入消息..." />
-      <button onclick="send()">发送</button>
-    </div>
-
-    <div class="actions">
-      <button onclick="startCall()">发起通话</button> 
-      <button
-        onclick="copyLink()"
-        title="复制房间链接"
-      >
-        📋
-      </button>
+  <!-- 房间入口界面 -->
+  <div id="roomEntry" class="room-entry">
+    <div class="room-card">
+      <input id="roomInput" placeholder="输入房间号" />
+      <button id="joinBtn">加入房间</button>
     </div>
   </div>
 
-  <!-- JS 保持你原来的逻辑，建议放在页面底部 -->
-  <script>
-    let socket;
-    let pc;
-    let dataChannel;
-    let localStream;
-    const room = prompt("输入房间号", "room123");
+  <!-- 聊天界面 -->
+  <div class="chat-container" id="chatContainer" style="display: none;">
+    <div class="chat-header">群聊（语音支持）</div>
+    <button class="floating-call-btn" id="callBtn">📞</button>
+    <div class="chat-messages" id="messages"></div>
+    <div class="chat-input">
+      <input type="text" id="msgInput" placeholder="输入消息..." />
+      <button id="sendBtn">发送</button>
+    </div>
+  </div>
 
-    socket = new WebSocket("wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev");
+<script>
+let socket, pc, dataChannel, localStream, roomId;
 
+document.getElementById('joinBtn').addEventListener('click', joinRoom);
+document.getElementById('sendBtn').addEventListener('click', sendMessage);
+document.getElementById('callBtn').addEventListener('click', startCall);
 
-    socket.onopen = () => {
-      socket.send(JSON.stringify({ type: "join", room }));
-    };
+function joinRoom() {
+  roomId = document.getElementById('roomInput').value.trim();
+  if (!roomId) return alert('请输入房间号');
 
-    socket.onmessage = async (event) => {
-      const msg = JSON.parse(event.data);
+  document.getElementById('roomEntry').style.display = 'none';
+  document.getElementById('chatContainer').style.display = 'flex';
 
-      if (msg.type === "joined") {
-        await createConnection(true);
-      } else if (msg.type === "signal") {
-        await handleSignal(msg.payload);
-      }
-    };
+  socket = new WebSocket('https://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/'); // 替换为你的地址
 
-    async function start() {
+  socket.addEventListener('open', () => {
+    socket.send(JSON.stringify({ type: 'join', roomId }));
+  });
+
+  socket.addEventListener('message', async (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === 'joined') {
+      const isInitiator = await checkIfInitiator();
+      createPeer(isInitiator);
+    } else if (msg.type === 'peer-joined') {
+      // 被动方也需创建连接
+      const isInitiator = false;
+      createPeer(isInitiator);
+    } else if (msg.type === 'signal') {
+      await handleSignal(msg.payload);
+    }
+  });
+
+  socket.addEventListener('close', () => alert('通信已断开'));
+  socket.addEventListener('error', err => console.error('WebSocket 错误：', err));
+}
+
+// 辅助：决定是否是房主（第一个进入的）
+async function checkIfInitiator() {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      // 粗略判断：2s 内如果没有 peer-joined 说明是 initiator
+      resolve(true);
+    }, 2000);
+    socket.addEventListener('message', msg => {
+      const data = JSON.parse(msg.data);
+      if (data.type === 'peer-joined') resolve(false);
+    }, { once: true });
+  });
+}
+
+function createPeer(isCaller) {
+  console.log('创建连接，isCaller:', isCaller);
+  pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+
+  pc.addEventListener('icecandidate', e => {
+    if (e.candidate) {
+      socket.send(JSON.stringify({ type: 'signal', roomId, payload: { candidate: e.candidate } }));
+    }
+  });
+
+  pc.addEventListener('track', e => {
+    const remoteAudio = new Audio();
+    remoteAudio.srcObject = e.streams[0];
+    remoteAudio.autoplay = true;
+    console.log('收到远端音频');
+  });
+
+  pc.addEventListener('iceconnectionstatechange', () => {
+    console.log('ICE 状态：', pc.iceConnectionState);
+  });
+
+  if (isCaller) {
+    dataChannel = pc.createDataChannel('chat');
+    setupChannel();
+  } else {
+    pc.addEventListener('datachannel', e => {
+      dataChannel = e.channel;
+      setupChannel();
+    });
+  }
+}
+
+function setupChannel() {
+  dataChannel.onmessage = e => appendMessage(e.data, false);
+}
+
+function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const txt = input.value.trim();
+  if (!txt || !dataChannel || dataChannel.readyState !== 'open') return;
+  dataChannel.send(txt);
+  appendMessage(txt, true);
+  input.value = '';
+}
+
+function appendMessage(txt, own) {
+  const cont = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = 'msg-row ' + (own ? 'own' : 'other');
+  const avatar = document.createElement('img');
+  avatar.className = 'avatar';
+  avatar.src = own
+    ? 'https://api.dicebear.com/7.x/thumbs/svg?seed=Me'
+    : 'https://api.dicebear.com/7.x/thumbs/svg?seed=Them';
+
+  const content = document.createElement('div');
+  content.className = 'msg-content';
+  if (!own) {
+    const name = document.createElement('div');
+    name.className = 'nickname';
+    name.textContent = '对方';
+    content.appendChild(name);
+  }
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = txt;
+  content.appendChild(bubble);
+
+  if (own) {
+    row.appendChild(content);
+    row.appendChild(avatar);
+  } else {
+    row.appendChild(avatar);
+    row.appendChild(content);
+  }
+  cont.appendChild(row);
+  cont.scrollTop = cont.scrollHeight;
+}
+
+async function handleSignal(data) {
+  if (data.sdp) {
+    await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    if (data.sdp.type === 'offer') {
       localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      localStream.getAudioTracks().forEach(track => {
-        pc.addTrack(track, localStream);
-      });
-
-      const audio = new Audio();
-      audio.srcObject = localStream;
-      audio.muted = true;
-      audio.play();
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      socket.send(JSON.stringify({ type: "signal", room, payload: { sdp: offer } }));
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.send(JSON.stringify({ type: 'signal', roomId, payload: { sdp: answer } }));
     }
-
-    async function createConnection(isCaller) {
-      pc = new RTCPeerConnection();
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.send(JSON.stringify({ type: "signal", room, payload: { candidate: event.candidate } }));
-        }
-      };
-
-      pc.ontrack = (event) => {
-        const remoteAudio = new Audio();
-        remoteAudio.srcObject = event.streams[0];
-        remoteAudio.autoplay = true;
-        remoteAudio.play();
-      };
-
-      if (!isCaller) {
-        pc.ondatachannel = (event) => {
-          dataChannel = event.channel;
-          setupChannel(dataChannel);
-        }
-      } else {
-        dataChannel = pc.createDataChannel("chat");
-        setupChannel(dataChannel);
-      }
+  } else if (data.candidate) {
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+    } catch (err) {
+      console.warn('添加 ICE 失败：', err);
     }
+  }
+}
 
-    function setupChannel(channel) {
-      channel.onmessage = (event) => {
-        addMessage(event.data, false);
-      };
-    }
-
-    async function handleSignal(data) {
-      if (data.sdp) {
-        await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-        if (data.sdp.type === "offer") {
-          localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          localStream.getAudioTracks().forEach(track => {
-            pc.addTrack(track, localStream);
-          });
-
-          const audio = new Audio();
-          audio.srcObject = localStream;
-          audio.muted = true;
-          audio.play();
-
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          socket.send(JSON.stringify({ type: "signal", room, payload: { sdp: answer } }));
-        }
-      } else if (data.candidate) {
-        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-      }
-    }
-
-    function send() {
-      const input = document.getElementById("msgInput");
-      const text = input.value.trim();
-      if (!text) return;
-
-      addMessage(text, true);
-      if (dataChannel && dataChannel.readyState === "open") {
-        dataChannel.send(text);
-      }
-
-      input.value = '';
-    }
-
-    function addMessage(text, isMine) {
-      const messages = document.getElementById("messages");
-
-      const row = document.createElement("div");
-      row.className = "msg-row " + (isMine ? "own" : "other");
-
-      const avatar = document.createElement("img");
-      avatar.className = "avatar";
-      avatar.src = isMine
-        ? "https://api.dicebear.com/7.x/thumbs/svg?seed=Me"
-        : "https://api.dicebear.com/7.x/thumbs/svg?seed=Remote";
-
-      const content = document.createElement("div");
-      content.className = "msg-content";
-
-      if (!isMine) {
-        const name = document.createElement("div");
-        name.className = "nickname";
-        name.textContent = "对方";
-        content.appendChild(name);
-      }
-
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
-      bubble.textContent = text;
-      content.appendChild(bubble);
-
-      if (isMine) {
-        row.appendChild(content);
-        row.appendChild(avatar);
-      } else {
-        row.appendChild(avatar);
-        row.appendChild(content);
-      }
-
-      messages.appendChild(row);
-      messages.scrollTop = messages.scrollHeight;
-    }
-
-    function copyLink() {
-      navigator.clipboard.writeText(window.location.href);
-      alert("房间链接已复制！");
-    }
-
-    function startCall() {
-      start(); // 可以自行扩展通话逻辑
-    }
-
-    // 显示聊天 UI（你可以在连接成功后调用）
-    document.getElementById("chatContainer").style.display = "flex";
-  </script>
-
-
-
-
-
+async function startCall() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socket.send(JSON.stringify({ type: 'signal', roomId, payload: { sdp: offer } }));
+    document.getElementById('callBtn').classList.add('active-call');
+  } catch (err) {
+    console.error('麦克风获取失败:', err);
+    alert('无法访问麦克风');
+  }
+}
+</script>
 </body>
 </html> 
