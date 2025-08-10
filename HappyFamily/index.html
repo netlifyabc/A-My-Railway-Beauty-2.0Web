@@ -290,7 +290,7 @@ html, body {
   
   <div class="chat-input">
     <input id="msgInput" placeholder="输入消息..." />
-    <button id="sendBtn">发送</button>
+    <button id="sendBtn">发送1</button>
   </div>
 </div> 
 
@@ -330,7 +330,6 @@ function joinRoom() {
   document.getElementById('roomEntry').style.display = 'none';
   document.getElementById('chatContainer').style.display = 'flex';
 
-  // 注意替换成你自己的 WebSocket 服务器地址
   socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
 
   socket.onopen = () => {
@@ -340,24 +339,17 @@ function joinRoom() {
 
   socket.onmessage = async (event) => {
     const msg = JSON.parse(event.data);
+
     if (msg.type === 'joined') {
       isInitiator = msg.initiator || false;
       createPeer();
-      updateStatus('connected');
-    }
-
-    if (msg.type === 'peer-joined') {
+    } else if (msg.type === 'peer-joined') {
       isInitiator = true;
       createPeer();
-      updateStatus('connected');
-    }
-
-    if (msg.type === 'signal') {
+    } else if (msg.type === 'signal') {
       await handleSignal(msg.payload);
-    }
-
-    // 收到文字消息（message类型）用 WebSocket 显示，不用 DataChannel
-    if (msg.type === 'message') {
+    } else if (msg.type === 'message') {
+      // 收到文字消息
       appendMessage(msg.text, false);
     }
   };
@@ -368,7 +360,6 @@ function joinRoom() {
     updateStatus('disconnected');
   };
 }
-
 
 function createPeer() {
   pc = new RTCPeerConnection({
@@ -393,11 +384,6 @@ function createPeer() {
     updateStatus('calling');
   };
 
-  pc.ondatachannel = e => {
-    dataChannel = e.channel;
-    setupDataChannel();
-  };
-
   pc.onconnectionstatechange = () => {
     const state = pc.connectionState;
     console.log("连接状态变化：", state);
@@ -408,34 +394,15 @@ function createPeer() {
       updateStatus('disconnected');
     }
   };
-
-  if (isInitiator) {
-    // 作为发起方，创建数据通道
-    dataChannel = pc.createDataChannel('chat');
-    setupDataChannel();
-  }
-}
-
-function setupDataChannel() {
-  dataChannel.onopen = () => {
-    console.log("✅ DataChannel 已连接");
-    if (currentStatus !== 'calling') updateStatus('connected');
-  };
-
-  dataChannel.onclose = () => {
-    console.log("❌ DataChannel 已关闭");
-    updateStatus('disconnected');
-  };
-
-  dataChannel.onmessage = e => appendMessage(e.data, false);
 }
 
 function sendMessage() {
   const input = document.getElementById('msgInput');
   const txt = input.value.trim();
-  if (!txt || !dataChannel || dataChannel.readyState !== 'open') return;
+  if (!txt || !socket || socket.readyState !== WebSocket.OPEN) return;
 
-  dataChannel.send(txt);
+  // 通过 WebSocket 发送文字消息，避免 DataChannel 冲突
+  socket.send(JSON.stringify({ type: 'message', roomId, text: txt }));
   appendMessage(txt, true);
   input.value = '';
 }
@@ -512,23 +479,22 @@ function setChatContainerHeight() {
   const chatContainer = document.querySelector('.chat-container');
   if (!chatContainer) return;
 
-  // 取视口当前高度（不使用100vh，避免iOS输入框弹起问题）
   const vh = window.innerHeight;
-
   chatContainer.style.height = vh + 'px';
 }
 
-// 页面加载和窗口尺寸变化时调用
 window.addEventListener('resize', setChatContainerHeight);
 window.addEventListener('orientationchange', setChatContainerHeight);
 window.addEventListener('load', setChatContainerHeight);
 
-// 针对iOS输入框弹起，监听focus事件，调整高度
 const chatInput = document.querySelector('.chat-input input');
 if (chatInput) {
   chatInput.addEventListener('focus', setChatContainerHeight);
   chatInput.addEventListener('blur', setChatContainerHeight);
 }
+
+
+
 </script>
 </body>
 
