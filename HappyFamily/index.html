@@ -244,7 +244,9 @@ function joinRoom() {
   document.getElementById('roomEntry').style.display = 'none';
   document.getElementById('chatContainer').style.display = 'flex';
 
-  socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/'); // 替换为你自己的 WebSocket 地址
+  socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
+
+ // 替换为你自己的 WebSocket 地址
 
   socket.onopen = () => {
     socket.send(JSON.stringify({ type: 'join', roomId, name: myName }));
@@ -400,7 +402,5 @@ msgInput.addEventListener('focus', () => {
   }, 300);
 });
 </script>
-
-
 </body>
 </html> 
