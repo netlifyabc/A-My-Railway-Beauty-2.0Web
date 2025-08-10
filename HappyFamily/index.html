@@ -110,38 +110,79 @@
       cursor: pointer;
     }
 
-    /* 手机端适配修复 */
-    @media (max-width: 768px) {
-      .chat-container {
-        height: 100vh;
-        position: relative;
-        display: flex;
-        flex-direction: column;
-      }
 
-      .chat-messages {
-        position: absolute;
-        top: 50px;
-        bottom: 70px;
-        left: 0;
-        right: 0;
-        padding: 16px;
-        overflow-y: auto;
-      }
+/* 手机端适配 */
+@media (max-width: 768px) {
+  html, body {
+    height: 100%;
+    overflow: hidden; /* 禁止页面整体滚动，避免晃动 */
+  }
 
-      .chat-input {
-        position: absolute;
-        bottom: env(safe-area-inset-bottom, 0);
-        left: 0;
-        right: 0;
-        height: 70px;
-        padding: 14px;
-        background-color: #F7F8FC;
-        display: flex;
-        align-items: center;
-        box-sizing: border-box;
-      }
-    }
+  .chat-container {
+    height: 100vh;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: #F7F8FC;
+  }
+
+  .chat-header {
+    flex-shrink: 0;
+    height: 50px;
+    line-height: 22px;
+    padding: 14px 16px;
+  }
+
+  .chat-messages {
+    position: absolute;
+    top: 50px;      /* 头部高度 */
+    bottom: 70px;   /* 输入区高度 */
+    left: 0;
+    right: 0;
+    padding: 16px;
+    overflow-y: auto;
+    background-color: #fff;
+    -webkit-overflow-scrolling: touch;
+    border-top: 1px solid #E5E3F4;
+    border-bottom: 1px solid #E5E3F4;
+  }
+
+  .chat-input {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;  /* 固定高度 */
+    padding: 14px 18px;
+    background-color: #F7F8FC;
+    border-top: 1px solid #E5E3F4;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+  }
+
+  .chat-input input {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 1px solid #C3B7F0;
+    border-radius: 10px;
+    background-color: white;
+  }
+
+  .chat-input button {
+    padding: 12px 18px;
+    margin-left: 14px;
+    font-size: 16px;
+    background-color: #6A4FB6;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
+  }
+
+}
   </style>
 </head>
 <body>
@@ -166,7 +207,7 @@
 
   <div class="chat-input">
     <input id="msgInput" placeholder="输入消息..." />
-    <button id="sendBtn">发送1</button>
+    <button id="sendBtn">发送2</button>
     <button id="callBtn" title="发起语音通话">📞</button> 
   </div>
 </div>
@@ -210,29 +251,37 @@ function joinRoom() {
     updateStatus('🟢 在线', 'green');
   };
 
-  socket.onmessage = async (event) => {
-    const msg = JSON.parse(event.data);
-    switch (msg.type) {
-      case 'joined':
-        appendMessage(`系统: 你已加入房间，身份：${myName}`, true);
-        createPeerConnection();
-        break;
-      case 'peer-joined':
-        peerName = msg.name || '对方';
-        appendMessage(`系统: ${peerName} 加入了房间`, false);
-        createPeerConnection();
-        break;
-      case 'signal':
-        await handleSignal(msg.payload);
-        break;
-      case 'message':
-        const from = msg.payload.from;
-        const content = msg.payload.content;
-        appendMessage(`${from}: ${content}`, from === myName);
-        break;
-    }
-  };
-}
+socket.onmessage = async (event) => {
+  const msg = JSON.parse(event.data);
+  console.log('收到消息:', msg);
+
+  switch (msg.type) {
+    case 'joined':
+      appendMessage(`系统: 你已加入房间，身份：${myName}`, true);
+      createPeerConnection();
+      break;
+    case 'peer-joined':
+      peerName = msg.name || '对方';
+      appendMessage(`系统: ${peerName} 加入了房间`, false);
+      createPeerConnection();
+      break;
+    case 'signal':
+      await handleSignal(msg.payload);
+      break;
+    case 'message':
+      const from = msg.payload.from || '匿名';
+      const content = msg.payload.content || '';
+      appendMessage(`${from}: ${content}`, from === myName);
+      break;
+    case 'error':
+      console.warn('收到错误:', msg.message);
+      break;
+    default:
+      console.warn('未知消息类型:', msg.type);
+  }
+}; 
+
+} 
 
 function createPeerConnection() {
   if (pc) return;
@@ -351,6 +400,7 @@ msgInput.addEventListener('focus', () => {
   }, 300);
 });
 </script>
+
 
 </body>
 </html> 
