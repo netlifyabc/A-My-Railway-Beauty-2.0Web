@@ -248,7 +248,7 @@ function joinRoom() {
   document.getElementById('roomEntry').style.display = 'none';
   document.getElementById('chatContainer').style.display = 'flex';
 
-  socket = new WebSocket('wss://你的信令服务器地址');
+  socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
 
   socket.onopen = () => {
     console.log("✅ 已连接信令服务器");
