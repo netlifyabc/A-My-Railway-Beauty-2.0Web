@@ -216,72 +216,55 @@
 @media (max-width: 768px) {
   html, body {
     height: 100%;
-    margin: 0;
-    /* 取消overflow: hidden，允许页面滚动防止输入框被遮挡 */
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch; /* iOS顺滑滚动 */
     touch-action: manipulation;
   }
 
-  #chatContainer {
+  .chat-container {
+    height: 100vh;
     display: flex !important;
     flex-direction: column;
-    height: 100vh; /* 占满视口高度 */
-    max-height: 100vh;
-    /* 加上安全区底部内边距，防止软键盘遮挡 */
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  .chat-header {
-    flex: 0 0 48px; /* 固定高度 */
-    line-height: 48px;
-    padding-left: 60px; /* 保持左边按钮空间 */
   }
 
   .chat-messages {
-    flex: 1 1 auto; /* 自适应占满剩余空间 */
+    flex: 1 1 auto;
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
     padding: 16px;
-    /* 防止被底部输入框遮挡 */
-    margin-bottom: 56px; 
-    box-sizing: border-box;
+    margin-bottom: 56px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .chat-input {
-    position: fixed; /* 固定在底部 */
-    bottom: env(safe-area-inset-bottom, 0); /* 兼容安全区域 */
+    position: fixed;
+    bottom: env(safe-area-inset-bottom, 0);
     left: 0;
     right: 0;
-    height: 56px; /* 输入框固定高度 */
+    height: 56px;
     padding: 8px 12px;
-    box-sizing: border-box;
     background: #F7F8FC;
     border-top: 1px solid #E5E3F4;
     display: flex;
     align-items: center;
-    z-index: 1000; /* 保证浮在最上层 */
+    box-sizing: border-box;
+    z-index: 1000;
   }
 
   .chat-input input {
     flex: 1;
     height: 40px;
-    font-size: 16px;
     padding: 0 12px;
-    line-height: 40px;
+    font-size: 16px;
     border-radius: 10px;
     border: 1px solid #C3B7F0;
     background-color: white;
     box-sizing: border-box;
-    outline-offset: 0;
   }
 
   .chat-input button {
     width: 120px;
     height: 40px;
-    padding: 0 20px;
-    font-size: 16px;
     margin-left: 14px;
+    font-size: 16px;
   }
 }
 
