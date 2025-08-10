@@ -295,8 +295,7 @@
   </div>
 </div>
 
-
-  <script>
+<script>
   // 你的JS，保持不变
   let socket, pc, dataChannel, roomId, localStream;
   let isInitiator = false;
@@ -305,6 +304,14 @@
   document.getElementById('joinBtn').onclick = joinRoom;
   document.getElementById('sendBtn').onclick = sendMessage;
   document.getElementById('callBtn').onclick = startCall;
+
+  // 新增：监听回车发送消息
+  document.getElementById('msgInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();  // 防止回车换行
+      sendMessage();
+    }
+  });
 
   function updateStatus(status) {
     currentStatus = status;
@@ -418,114 +425,115 @@
   }
 
   function setupDataChannel() {
-  dataChannel.onopen = () => {
-    console.log("✅ DataChannel 已连接");
-    if (currentStatus !== 'calling') updateStatus('connected');
-  };
+    dataChannel.onopen = () => {
+      console.log("✅ DataChannel 已连接");
+      if (currentStatus !== 'calling') updateStatus('connected');
+    };
 
-  dataChannel.onclose = () => {
-    console.log("❌ DataChannel 已关闭");
-    updateStatus('disconnected');
-  };
+    dataChannel.onclose = () => {
+      console.log("❌ DataChannel 已关闭");
+      updateStatus('disconnected');
+    };
 
-  dataChannel.onmessage = e => {
-    appendMessage('对方: ' + e.data, false);
-  };
-}
-
-function sendMessage() {
-  const input = document.getElementById('msgInput');
-  const txt = input.value.trim();
-  if (!txt || !dataChannel || dataChannel.readyState !== 'open') return;
-
-  // 先通过 DataChannel 发给对方
-  dataChannel.send(txt);
-  appendMessage('我: ' + txt, true);
-  input.value = '';
-
-  // 通过信令服务器存储消息（调用后端 messageStore 缓存）
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({
-      type: 'message',
-      roomId,
-      payload: { from: '我', content: txt }
-    }));
+    dataChannel.onmessage = e => {
+      appendMessage('对方: ' + e.data, false);
+    };
   }
-}
 
-function appendMessage(txt, isMe) {
-  const box = document.getElementById('messages');
-  const div = document.createElement('div');
-  div.textContent = txt;
-  div.style.textAlign = isMe ? 'right' : 'left';
-  div.style.padding = '4px 8px';
-  div.style.margin = '2px 0';
-  div.style.borderRadius = '4px';
-  div.style.backgroundColor = isMe ? '#daf1da' : '#f1f0f0';
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
-}
+  function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const txt = input.value.trim();
+    if (!txt || !dataChannel || dataChannel.readyState !== 'open') return;
 
-async function handleSignal(data) {
-  if (data.sdp) {
-    await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    // 先通过 DataChannel 发给对方
+    dataChannel.send(txt);
+    appendMessage('我: ' + txt, true);
+    input.value = '';
 
-    if (data.sdp.type === 'offer') {
+    // 通过信令服务器存储消息（调用后端 messageStore 缓存）
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({
+        type: 'message',
+        roomId,
+        payload: { from: '我', content: txt }
+      }));
+    }
+  }
+
+  function appendMessage(txt, isMe) {
+    const box = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.textContent = txt;
+    div.style.textAlign = isMe ? 'right' : 'left';
+    div.style.padding = '4px 8px';
+    div.style.margin = '2px 0';
+    div.style.borderRadius = '4px';
+    div.style.backgroundColor = isMe ? '#daf1da' : '#f1f0f0';
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  async function handleSignal(data) {
+    if (data.sdp) {
+      await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+
+      if (data.sdp.type === 'offer') {
+        await getLocalStream();
+        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.send(JSON.stringify({
+          type: 'signal',
+          roomId,
+          payload: { sdp: answer }
+        }));
+      }
+    } else if (data.candidate) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+      } catch (err) {
+        console.warn('添加 ICE 出错：', err);
+      }
+    }
+  }
+
+  async function startCall() {
+    try {
       await getLocalStream();
       localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
       socket.send(JSON.stringify({
         type: 'signal',
         roomId,
-        payload: { sdp: answer }
+        payload: { sdp: offer }
       }));
-    }
-  } else if (data.candidate) {
-    try {
-      await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+      console.log("🎤 发起语音通话");
+      updateStatus('calling');
     } catch (err) {
-      console.warn('添加 ICE 出错：', err);
+      alert("语音通话失败：" + err.message);
     }
   }
-}
 
-async function startCall() {
-  try {
-    await getLocalStream();
-    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    socket.send(JSON.stringify({
-      type: 'signal',
-      roomId,
-      payload: { sdp: offer }
-    }));
-    console.log("🎤 发起语音通话");
-    updateStatus('calling');
-  } catch (err) {
-    alert("语音通话失败：" + err.message);
-  }
-}
-
-async function getLocalStream() {
-  if (!localStream) {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false
-        }
-      });
-      console.log("🎙️ 获取麦克风成功");
-    } catch (err) {
-      alert("无法访问麦克风: " + err.message);
-      throw err;
+  async function getLocalStream() {
+    if (!localStream) {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+        console.log("🎙️ 获取麦克风成功");
+      } catch (err) {
+        alert("无法访问麦克风: " + err.message);
+        throw err;
+      }
     }
   }
-}
-</script> 
+</script>
 
 </body>
+
 </html> 
