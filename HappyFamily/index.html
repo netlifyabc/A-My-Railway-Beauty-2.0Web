@@ -212,12 +212,15 @@
   transform: scale(0.98);
 }
 
+
 @media (max-width: 768px) {
   html, body {
     height: 100%;
     margin: 0;
-    overflow: hidden; /* 禁止页面上下滚动 */
-    touch-action: manipulation; /* 允许基本触摸操作 */
+    /* 取消overflow: hidden，允许页面滚动防止输入框被遮挡 */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* iOS顺滑滚动 */
+    touch-action: manipulation;
   }
 
   #chatContainer {
@@ -225,6 +228,8 @@
     flex-direction: column;
     height: 100vh; /* 占满视口高度 */
     max-height: 100vh;
+    /* 加上安全区底部内边距，防止软键盘遮挡 */
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .chat-header {
@@ -236,24 +241,39 @@
   .chat-messages {
     flex: 1 1 auto; /* 自适应占满剩余空间 */
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch; /* iOS顺滑滚动 */
+    -webkit-overflow-scrolling: touch;
     padding: 16px;
+    /* 防止被底部输入框遮挡 */
+    margin-bottom: 56px; 
+    box-sizing: border-box;
   }
 
   .chat-input {
-    flex: 0 0 56px; /* 输入框固定高度 */
+    position: fixed; /* 固定在底部 */
+    bottom: env(safe-area-inset-bottom, 0); /* 兼容安全区域 */
+    left: 0;
+    right: 0;
+    height: 56px; /* 输入框固定高度 */
     padding: 8px 12px;
     box-sizing: border-box;
     background: #F7F8FC;
     border-top: 1px solid #E5E3F4;
+    display: flex;
     align-items: center;
+    z-index: 1000; /* 保证浮在最上层 */
   }
 
   .chat-input input {
+    flex: 1;
     height: 40px;
     font-size: 16px;
     padding: 0 12px;
     line-height: 40px;
+    border-radius: 10px;
+    border: 1px solid #C3B7F0;
+    background-color: white;
+    box-sizing: border-box;
+    outline-offset: 0;
   }
 
   .chat-input button {
@@ -261,6 +281,7 @@
     height: 40px;
     padding: 0 20px;
     font-size: 16px;
+    margin-left: 14px;
   }
 }
 
@@ -294,20 +315,19 @@
     <button id="sendBtn">发送</button>
   </div>
 </div>
-
 <script>
   let socket, pc, dataChannel, roomId, localStream;
   let isInitiator = false;
-  let currentStatus = 'disconnected'; // disconnected | connected | calling
+  let currentStatus = 'disconnected';
+  const myId = 'u_' + Math.random().toString(36).slice(2, 10); // 用于标记“我”
 
   document.getElementById('joinBtn').onclick = joinRoom;
   document.getElementById('sendBtn').onclick = sendMessage;
   document.getElementById('callBtn').onclick = startCall;
 
-  // 监听回车发送消息
   document.getElementById('msgInput').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
-      e.preventDefault();  // 防止换行
+      e.preventDefault();
       sendMessage();
     }
   });
@@ -317,16 +337,17 @@
     const el = document.getElementById('statusIndicator');
     if (!el) return;
 
-    if (status === 'connected') {
-      el.textContent = '🟢 在线';
-      el.style.color = 'green';
-    } else if (status === 'calling') {
-      el.textContent = '🔴 通话中';
-      el.style.color = 'red';
-    } else {
-      el.textContent = '⚫ 离线';
-      el.style.color = 'gray';
-    }
+    el.textContent = {
+      connected: '🟢 在线',
+      calling: '🔴 通话中',
+      disconnected: '⚫ 离线'
+    }[status] || '⚫ 离线';
+
+    el.style.color = {
+      connected: 'green',
+      calling: 'red',
+      disconnected: 'gray'
+    }[status] || 'gray';
   }
 
   function joinRoom() {
@@ -345,26 +366,36 @@
 
     socket.onmessage = async (event) => {
       const msg = JSON.parse(event.data);
-      if (msg.type === 'joined') {
-        isInitiator = msg.initiator || false;
-        createPeer();
-      } 
-      else if (msg.type === 'peer-joined') {
-        if (!isInitiator && !pc) createPeer();
-      }
-      else if (msg.type === 'signal') {
-        await handleSignal(msg.payload);
-      }
-      else if (msg.type === 'history') {
-        if (Array.isArray(msg.messages)) {
-          msg.messages.forEach(m => {
-            appendMessage(`${m.from || '匿名'}: ${m.content}`, false);
-          });
-        }
-      }
-      else if (msg.type === 'message') {
-        const p = msg.payload;
-        if (p && p.content) appendMessage(`${p.from || '匿名'}: ${p.content}`, false);
+      switch (msg.type) {
+        case 'joined':
+          isInitiator = msg.initiator || false;
+          createPeer();
+          break;
+
+        case 'peer-joined':
+          if (!isInitiator && !pc) createPeer();
+          break;
+
+        case 'signal':
+          await handleSignal(msg.payload);
+          break;
+
+        case 'history':
+          if (Array.isArray(msg.messages)) {
+            msg.messages.forEach(m => {
+              const isMe = m.from === myId;
+              appendMessage(`${isMe ? '我' : m.from}: ${m.content}`, isMe);
+            });
+          }
+          break;
+
+        case 'message':
+          const p = msg.payload;
+          if (p && p.content) {
+            const isMe = p.from === myId;
+            appendMessage(`${isMe ? '我' : p.from}: ${p.content}`, isMe);
+          }
+          break;
       }
     };
 
@@ -394,7 +425,6 @@
       const remoteAudio = new Audio();
       remoteAudio.srcObject = e.streams[0];
       remoteAudio.autoplay = true;
-      console.log("✅ 收到远程音频流");
       updateStatus('calling');
     };
 
@@ -406,12 +436,8 @@
     pc.onconnectionstatechange = () => {
       const state = pc.connectionState;
       console.log("连接状态变化：", state);
-
-      if (state === 'connected') {
-        updateStatus(localStream ? 'calling' : 'connected');
-      } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
-        updateStatus('disconnected');
-      }
+      if (state === 'connected') updateStatus(localStream ? 'calling' : 'connected');
+      else if (['disconnected', 'failed', 'closed'].includes(state)) updateStatus('disconnected');
     };
 
     if (isInitiator) {
@@ -425,43 +451,40 @@
       console.log("✅ DataChannel 已连接");
       if (currentStatus !== 'calling') updateStatus('connected');
     };
-
     dataChannel.onclose = () => {
       console.log("❌ DataChannel 已关闭");
       updateStatus('disconnected');
     };
-
     dataChannel.onmessage = e => {
       appendMessage('对方: ' + e.data, false);
     };
   }
 
-  // 修改后的 sendMessage，支持离线异步发送
   function sendMessage() {
     const input = document.getElementById('msgInput');
     const txt = input.value.trim();
-    if (!txt) return alert("消息不能为空");
+    if (!txt) return;
 
-    // 本地显示
-    appendMessage('我: ' + txt, true);
     input.value = '';
 
-    // DataChannel 开启时实时发给对方
+    // 备用传输（对方 DataChannel 开启时可以用）
     if (dataChannel && dataChannel.readyState === 'open') {
       dataChannel.send(txt);
-    } else {
-      console.log("DataChannel 未连接，消息通过信令服务器异步发送");
     }
 
-    // 无论如何都通过信令服务器发送，确保消息持久化与异步转发
+    // 主要通过 WebSocket 发送并广播
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({
         type: 'message',
         roomId,
-        payload: { from: '我', content: txt }
+        payload: {
+          from: myId,
+          content: txt,
+          timestamp: Date.now()
+        }
       }));
     } else {
-      alert("信令服务器未连接，消息暂时无法发送");
+      alert("连接中断，无法发送消息");
     }
   }
 
@@ -481,7 +504,6 @@
   async function handleSignal(data) {
     if (data.sdp) {
       await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-
       if (data.sdp.type === 'offer') {
         await getLocalStream();
         localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
@@ -513,7 +535,6 @@
         roomId,
         payload: { sdp: offer }
       }));
-      console.log("🎤 发起语音通话");
       updateStatus('calling');
     } catch (err) {
       alert("语音通话失败：" + err.message);
@@ -540,10 +561,9 @@
 </script>
 
 
+
+
 </body>
-
-
-
 
 
 
