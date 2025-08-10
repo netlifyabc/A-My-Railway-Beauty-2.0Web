@@ -301,9 +301,11 @@ html, body {
 </nav>
 
 <script>
-let socket, pc, roomId, myName, localStream, peerName = '';
+
+  let socket, pc, roomId, myName, localStream;
 let isInitiator = false;
-let currentStatus = 'disconnected';
+let currentStatus = 'disconnected'; // disconnected | connected | calling
+let peerName = '';
 
 document.getElementById('joinBtn').onclick = joinRoom;
 document.getElementById('sendBtn').onclick = sendMessage;
@@ -334,7 +336,6 @@ function joinRoom() {
   document.getElementById('roomEntry').style.display = 'none';
   document.getElementById('chatContainer').style.display = 'flex';
 
-  // ✅ 修改为你的 WebSocket 地址
   socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
 
   socket.onopen = () => {
@@ -349,7 +350,7 @@ function joinRoom() {
 
     switch (msg.type) {
       case 'joined':
-        isInitiator = msg.initiator;
+        isInitiator = msg.initiator || false;
         appendMessage(`系统: 已加入房间 ${roomId}`, true);
         createPeer();
         break;
@@ -374,6 +375,10 @@ function joinRoom() {
       case 'peer-left':
         appendMessage(`系统: 对方已离开`, false);
         updateStatus('connected');
+        if (pc) {
+          pc.close();
+          pc = null;
+        }
         break;
 
       case 'error':
@@ -382,9 +387,14 @@ function joinRoom() {
     }
   };
 
+  socket.onerror = (err) => console.error("WebSocket 错误：", err);
   socket.onclose = () => {
-    console.log("WebSocket 已关闭");
+    console.warn("WebSocket 已关闭");
     updateStatus('disconnected');
+    if (pc) {
+      pc.close();
+      pc = null;
+    }
   };
 }
 
@@ -395,30 +405,36 @@ function createPeer() {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
   });
 
-  pc.onicecandidate = (event) => {
-    if (event.candidate) {
+  pc.onicecandidate = e => {
+    if (e.candidate) {
       socket.send(JSON.stringify({
         type: 'signal',
         roomId,
-        payload: { candidate: event.candidate }
+        payload: { candidate: e.candidate }
       }));
     }
   };
 
-  pc.ontrack = (event) => {
-    const remoteAudio = new Audio();
-    remoteAudio.srcObject = event.streams[0];
+  pc.ontrack = e => {
+    let remoteAudio = document.getElementById('remoteAudio');
+    if (!remoteAudio) {
+      remoteAudio = new Audio();
+      remoteAudio.id = 'remoteAudio';
+      document.body.appendChild(remoteAudio);
+    }
+    remoteAudio.srcObject = e.streams[0];
     remoteAudio.autoplay = true;
+    console.log("✅ 收到远程音频流");
     updateStatus('calling');
   };
 
   pc.onconnectionstatechange = () => {
     const state = pc.connectionState;
-    console.log("🔁 RTC 状态", state);
+    console.log("连接状态变化：", state);
 
     if (state === 'connected') {
       updateStatus('calling');
-    } else if (['disconnected', 'failed', 'closed'].includes(state)) {
+    } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
       updateStatus('connected');
     }
   };
@@ -430,17 +446,20 @@ async function handleSignal(data) {
 
     if (data.sdp.type === 'offer') {
       await getLocalStream();
-      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
+      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      socket.send(JSON.stringify({ type: 'signal', roomId, payload: { sdp: answer } }));
+      socket.send(JSON.stringify({
+        type: 'signal',
+        roomId,
+        payload: { sdp: answer }
+      }));
     }
   } else if (data.candidate) {
     try {
       await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-    } catch (e) {
-      console.warn("添加 ICE 失败", e);
+    } catch (err) {
+      console.warn('添加 ICE 出错：', err);
     }
   }
 }
@@ -450,27 +469,32 @@ async function startCall() {
 
   try {
     await getLocalStream();
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-
     socket.send(JSON.stringify({
       type: 'signal',
       roomId,
       payload: { sdp: offer }
     }));
-
+    console.log("🎤 发起语音通话");
     updateStatus('calling');
-  } catch (e) {
-    alert("启动通话失败：" + e.message);
+  } catch (err) {
+    alert("语音通话失败：" + err.message);
   }
 }
 
 async function getLocalStream() {
   if (!localStream) {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    console.log("🎙️ 本地音频获取成功");
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({
+        audio: true
+      });
+      console.log("🎙️ 获取麦克风成功");
+    } catch (err) {
+      alert("无法访问麦克风: " + err.message);
+      throw err;
+    }
   }
 }
 
@@ -488,7 +512,7 @@ function sendMessage() {
     }
   }));
 
-  appendMessage(`${myName}: ${text}`, true);
+
   input.value = '';
 }
 
@@ -504,6 +528,9 @@ function appendMessage(text, isMe) {
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
 }
+
 </script>
 </body>
+
+
 </html>  
