@@ -1,115 +1,194 @@
+
 <!DOCTYPE html>
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>自定义名字 WebRTC 聊天</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>简易 WebRTC 聊天</title>
   <style>
-    html, body {
-      margin: 0; padding: 0;
-      height: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      background-color: #F7F8FC;
-      color: #2B2346;
-      overflow: hidden;
-    }
+html, body {
+  margin: 0; padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #F7F8FC; /* 清淡银河灰 */
+  color: #2B2346; /* 深星紫 */
+  overflow: hidden; /* 默认禁止滚动，防止手机端晃动 */
+}
 
-    #roomEntry {
-      display: flex;
-      height: 100vh;
-      align-items: center;
-      justify-content: center;
-    }
+/* 房间输入界面 */
+#roomEntry {
+  display: flex;
+  height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background-color: #F7F8FC;
+}
 
-    #roomEntry input {
-      padding: 10px 14px;
-      margin: 6px;
-      border: 1px solid #C3B7F0;
-      border-radius: 10px;
-      font-size: 16px;
-      background-color: white;
-    }
+#roomEntry input {
+  padding: 10px 14px;
+  border: 1px solid #C3B7F0; /* 柔和蓝紫边框 */
+  border-radius: 10px;
+  font-size: 16px;
+  background-color: white;
+  transition: border-color 0.2s;
+}
 
-    #roomEntry button {
-      padding: 10px 16px;
-      background-color: #6A4FB6;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-    }
+#roomEntry input:focus {
+  border-color: #8B6ECF; /* 主色调聚焦 */
+  outline: none;
+}
 
-    .chat-container {
-      display: none;
-      flex-direction: column;
-      height: 100vh;
-    }
+#roomEntry button {
+  padding: 10px 16px;
+  margin-left: 12px;
+  background-color: #6A4FB6; /* 宇宙蓝紫 */
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
 
-    .chat-header {
-      padding: 14px 16px;
-      background-color: #6A4FB6;
-      color: white;
-      text-align: center;
-      font-weight: 600;
-      font-size: 16px;
-      position: relative;
-      height: 50px;
-      line-height: 22px;
-    }
+#roomEntry button:hover {
+  background-color: #593aa5;
+  box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
+}
 
-    #statusIndicator {
-      position: absolute;
-      right: 16px;
-      top: 14px;
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.75);
-    }
+/* 聊天容器 */
+.chat-container {
+  display: none;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #F7F8FC;
+  overflow: hidden;
+  display: flex;
+}
 
-    .chat-messages {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-      background-color: #fff;
-    }
+/* 头部 */
+.chat-header {
+  padding: 14px 16px;
+  background-color: #6A4FB6; /* 主色 */
+  color: white;
+  text-align: center;
+  font-weight: 600;
+  font-size: 16px;
+  position: relative;
+  box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
+  user-select: none;
+  flex-shrink: 0;
+  height: 50px;
+  line-height: 22px;
+}
 
-    .chat-messages div {
-      margin-bottom: 10px;
-      padding: 10px 14px;
-      border-radius: 10px;
-      max-width: 75%;
-      word-break: break-word;
-      font-size: 15px;
-      background-color: #ECE8FF;
-    }
+#statusIndicator {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+}
 
-    .chat-input {
-      display: flex;
-      padding: 14px;
-      background-color: #F7F8FC;
-      border-top: 1px solid #E5E3F4;
-      height: 70px;
-    }
+/* 聊天内容区 */
+.chat-messages {
+  flex: 1 1 auto;
+  padding: 16px;
+  overflow-y: auto;
+  background-color: #ffffff;
+  border-top: 1px solid #E5E3F4;
+  border-bottom: 1px solid #E5E3F4;
+  -webkit-overflow-scrolling: touch;
+}
 
-    .chat-input input {
-      flex: 1;
-      padding: 12px;
-      font-size: 16px;
-      border: 1px solid #C3B7F0;
-      border-radius: 10px;
-    }
+/* 聊天气泡 */
+.chat-messages div {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  max-width: 70%;
+  word-break: break-word;
+  font-size: 15px;
+  background-color: #ECE8FF; /* 淡紫色泡泡 */
+  color: #2B2346;
+  box-shadow: 0 1px 4px rgba(106, 79, 182, 0.15);
+  transition: background-color 0.3s;
+}
 
-    .chat-input button {
-      padding: 12px 18px;
-      margin-left: 14px;
-      font-size: 16px;
-      background-color: #6A4FB6;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-    }
+/* “我”的气泡样式 */
+.chat-messages div:has(:first-child:contains("我:")) {
+  background-color: #DAD3FF;
+  margin-left: auto;
+  text-align: right;
+  box-shadow: 0 1px 6px rgba(106, 79, 182, 0.25);
+}
 
+/* 输入区 */
+.chat-input {
+  display: flex;
+  padding: 14px 18px;
+  background-color: #F7F8FC;
+  border-top: 1px solid #E5E3F4;
+  flex-shrink: 0;
+  height: 70px;
+  box-sizing: border-box;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 16px;
+  border: 1px solid #C3B7F0;
+  border-radius: 10px;
+  background-color: white;
+  transition: border-color 0.3s;
+}
+
+.chat-input input:focus {
+  border-color: #8B6ECF;
+  outline: none;
+}
+
+.chat-input button {
+  padding: 12px 18px;
+  margin-left: 14px;
+  font-size: 16px;
+  background-color: #6A4FB6;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.chat-input button:hover {
+  background-color: #593aa5;
+  box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
+}
+
+/* 语音按钮样式 */
+.call-btn {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #8B6ECF;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  color: #c0c0c0;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(139, 110, 207, 0.6);
+  transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  z-index: 10;
+}
 
 /* 手机端适配 */
 @media (max-width: 768px) {
@@ -181,38 +260,47 @@
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
   }
-
 }
+
   </style>
 </head>
 <body>
 
-<!-- 加入房间界面 -->
 <div id="roomEntry">
   <div>
     <input id="nameInput" placeholder="你的名字" />
-    <input id="roomInput" placeholder="房间号" />
+    <input id="roomInput" placeholder="输入房间号" />
     <button id="joinBtn">加入房间</button>
   </div>
 </div>
 
+
 <!-- 聊天界面 -->
-<div class="chat-container" id="chatContainer">
+<div class="chat-container" id="chatContainer" style="display:none;">
   <div class="chat-header">
-    房间中（语音+文字）
+<button id="callBtn" class="call-btn" title="语音通话" aria-label="语音通话">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.11-.27 11.36 11.36 0 003.54.57 1 1 0 011 1V19a1 1 0 01-1 1A17 17 0 013 5a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.54 1 1 0 01-.27 1.11z"/>
+  </svg>
+</button>
+
+    房间中（支持语音+文字）
     <span id="statusIndicator">⚫ 离线</span>
   </div>
 
   <div class="chat-messages" id="messages"></div>
-
+  
   <div class="chat-input">
     <input id="msgInput" placeholder="输入消息..." />
     <button id="sendBtn">发送</button>
-    <button id="callBtn" title="发起语音通话">📞</button> 
   </div>
-</div>
+</div> 
 
+<nav>
+
+</nav>
 <script>
+
 let socket, pc, dataChannel, roomId, localStream;
 let isInitiator = false;
 let currentStatus = 'disconnected'; // disconnected | connected | calling
@@ -470,7 +558,9 @@ function cleanupConnection() {
   updateStatus('disconnected');
 }
 
-
 </script>
+
 </body>
-</html> 
+
+
+</html>  
