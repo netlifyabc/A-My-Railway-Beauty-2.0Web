@@ -290,13 +290,14 @@ html, body {
   
   <div class="chat-input">
     <input id="msgInput" placeholder="输入消息..." />
-    <button id="sendBtn">发送1</button>
+    <button id="sendBtn">发送2</button>
   </div>
 </div> 
 
 <nav>
 
 </nav>
+
 <script>
 let socket, pc, roomId, localStream;
 let isInitiator = false;
@@ -337,22 +338,21 @@ function joinRoom() {
     socket.send(JSON.stringify({ type: 'join', roomId }));
   };
 
-  socket.onmessage = async (event) => {
-    const msg = JSON.parse(event.data);
+     socket.onmessage = async (event) => {
+  const msg = JSON.parse(event.data);
 
-    if (msg.type === 'joined') {
-      isInitiator = msg.initiator || false;
-      createPeer();
-    } else if (msg.type === 'peer-joined') {
-      isInitiator = true;
-      createPeer();
-    } else if (msg.type === 'signal') {
-      await handleSignal(msg.payload);
-    } else if (msg.type === 'message') {
-      // 收到文字消息
-      appendMessage(msg.text, false);
-    }
-  };
+  if (msg.type === 'joined') {
+    isInitiator = msg.initiator || false;
+    createPeer();
+  } else if (msg.type === 'peer-joined') {
+    isInitiator = true;
+    createPeer();
+  } else if (msg.type === 'signal') {
+    await handleSignal(msg.payload);
+  } else if (msg.type === 'message') {
+    appendMessage(msg.payload.content, false);
+  }
+};
 
   socket.onerror = (err) => console.error("WebSocket 错误：", err);
   socket.onclose = () => {
@@ -402,7 +402,17 @@ function sendMessage() {
   if (!txt || !socket || socket.readyState !== WebSocket.OPEN) return;
 
   // 通过 WebSocket 发送文字消息，避免 DataChannel 冲突
-  socket.send(JSON.stringify({ type: 'message', roomId, text: txt }));
+
+socket.send(JSON.stringify({
+  type: 'message',
+  roomId,
+  payload: {
+    from: '我',    // 可选，标记发送者
+    content: txt
+  }
+}));
+
+
   appendMessage(txt, true);
   input.value = '';
 }
@@ -493,10 +503,7 @@ if (chatInput) {
   chatInput.addEventListener('blur', setChatContainerHeight);
 }
 
-
-
 </script>
 </body>
-
 
 </html> 
