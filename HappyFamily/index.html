@@ -1,327 +1,371 @@
-
 <!DOCTYPE html>
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>简易 WebRTC 聊天</title>
   <style>
+    html, body {
+      margin: 0; padding: 0;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #F7F8FC; /* 清淡银河灰 */
+      color: #2B2346; /* 深星紫 */
+    }
 
-html, body {
-  margin: 0; padding: 0;
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: #F7F8FC; /* 清淡银河灰 */
-  color: #2B2346; /* 深星紫 */
-}
+    /* 房间输入界面 */
+    #roomEntry {
+      display: flex;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+      background-color: #F7F8FC;
+    }
 
-/* 房间输入界面 */
-#roomEntry {
-  display: flex;
-  height: 100vh;
-  align-items: center;
-  justify-content: center;
-  background-color: #F7F8FC;
-}
- 
-#roomEntry input {
-  padding: 10px 14px;
-  border: 1px solid #C3B7F0; /* 柔和蓝紫边框 */
-  border-radius: 10px;
-  font-size: 16px;
-  background-color: white;
-  transition: border-color 0.2s;
-}
+    #roomEntry input {
+      padding: 10px 14px;
+      border: 1px solid #C3B7F0; /* 柔和蓝紫边框 */
+      border-radius: 10px;
+      font-size: 16px;
+      background-color: white;
+      transition: border-color 0.2s;
+    }
 
-#roomEntry input:focus {
-  border-color: #8B6ECF; /* 主色调聚焦 */
-  outline: none;
-}
+    #roomEntry input:focus {
+      border-color: #8B6ECF; /* 主色调聚焦 */
+      outline: none;
+    }
 
-#roomEntry button {
-  padding: 10px 16px;
-  margin-left: 12px;
-  background-color: #6A4FB6; /* 宇宙蓝紫 */
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
-  transition: background-color 0.3s, box-shadow 0.3s;
-}
+    #roomEntry button {
+      padding: 10px 16px;
+      margin-left: 12px;
+      background-color: #6A4FB6; /* 宇宙蓝紫 */
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
 
-#roomEntry button:hover {
-  background-color: #593aa5;
-  box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
-}
+    #roomEntry button:hover {
+      background-color: #593aa5;
+      box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
+    }
 
-/* 聊天容器 */
-.chat-container {
-  display: none;
-  flex-direction: column;
-  height: 100vh;
-  background-color: #F7F8FC;
-}
+    /* 聊天容器 */
+    #chatContainer {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+      background-color: #F7F8FC;
 
-/* 头部 */
-.chat-header {
-  padding: 14px 16px;
-  background-color: #6A4FB6; /* 主色 */
-  color: white;
-  text-align: center;
-  font-weight: 600;
-  font-size: 16px;
-  position: relative;
-  box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
-  user-select: none;
-}
+      /* flex容器 */
+      display: flex;
+    }
 
-#statusIndicator {
-  position: absolute;
-  right: 16px;
-  top: 14px;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.75);
-}
+    /* 头部 */
+    .chat-header {
+      padding: 14px 16px;
+      padding-left: 60px; /* 给左边多留出点空间给按钮 */
+      background-color: #6A4FB6;
+      color: white;
+      text-align: center;
+      font-weight: 600;
+      font-size: 16px;
+      position: relative;
+      box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
+      user-select: none;
 
-/* 聊天内容区 */
-.chat-messages {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-  background-color: #ffffff;
-  border-top: 1px solid #E5E3F4;
-  border-bottom: 1px solid #E5E3F4;
-}
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-shrink: 0; /* 不收缩 */
+    }
 
-/* 聊天气泡 */
-.chat-messages div {
-  margin-bottom: 12px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  max-width: 70%;
-  word-break: break-word;
-  font-size: 15px;
-  background-color: #ECE8FF; /* 淡紫色泡泡 */
-  color: #2B2346;
-  box-shadow: 0 1px 4px rgba(106, 79, 182, 0.15);
-  transition: background-color 0.3s;
-}
+    /* 语音按钮样式 */
+    .call-btn {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background-color: #8B6ECF;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      font-size: 20px;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(139, 110, 207, 0.6);
+      transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      z-index: 10;
+    }
 
-/* “我”的气泡样式 */
-.chat-messages div:has(:first-child:contains("我:")) {
-  background-color: #DAD3FF;
-  margin-left: auto;
-  text-align: right;
-  box-shadow: 0 1px 6px rgba(106, 79, 182, 0.25);
-}
+    .call-btn:hover {
+      background-color: #6A4FB6;
+      box-shadow: 0 4px 12px rgba(106, 79, 182, 0.8);
+      transform: translateY(-50%) scale(1.1);
+    }
 
-/* 输入区 */
-.chat-input {
-  display: flex;
-  padding: 14px 18px;
-  background-color: #F7F8FC;
-  border-top: 1px solid #E5E3F4;
-}
+    .call-btn:active {
+      transform: translateY(-50%) scale(0.95);
+    }
 
-.chat-input input {
-  flex: 1;
-  padding: 12px 16px;
-  font-size: 16px;
-  border: 1px solid #C3B7F0;
-  border-radius: 10px;
-  background-color: white;
-  transition: border-color 0.3s;
-}
+    #statusIndicator {
+      position: absolute;
+      right: 16px;
+      top: 14px;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.75);
+    }
 
-.chat-input input:focus {
-  border-color: #8B6ECF;
-  outline: none;
-}
+    /* 聊天内容区 */
+    .chat-messages {
+      flex: 1 1 auto; /* 关键：撑满剩余空间 */
+      padding: 32px 16px 16px 16px; /* 顶部多加点内边距 */
+      overflow-y: auto;
+      background-color: #ffffff;
+      border-top: 1px solid #E5E3F4;
+      border-bottom: 1px solid #E5E3F4;
+      box-sizing: border-box; /* 确保padding计算在内 */
+    }
 
-.chat-input button {
-  padding: 12px 18px;
-  margin-left: 14px;
-  font-size: 16px;
-  background-color: #6A4FB6;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
-  transition: background-color 0.3s, box-shadow 0.3s;
-}
+    /* 聊天气泡 */
+    .chat-messages div {
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      max-width: 70%;
+      word-break: break-word;
+      font-size: 15px;
+      background-color: #ECE8FF; /* 淡紫色泡泡 */
+      color: #2B2346;
+      box-shadow: 0 1px 4px rgba(106, 79, 182, 0.15);
+      transition: background-color 0.3s;
+    }
 
-.chat-input button:hover {
-  background-color: #593aa5;
-  box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
-}
+    /* “我”的气泡样式 */
+    /* 这里你用JS控制了背景色，CSS里不用写 :has() 了 */
 
-/* 手机端禁止滚动，聊天框占满屏幕 */
-@media (max-width: 768px) {
-  html, body {
-    height: 100%;
-    overflow: hidden; /* 禁止页面上下滚动 */
-    touch-action: none; /* 防止触摸滑动 */
-  }
-  .chat-container {
-    height: 100vh; /* 占满视口高度 */
-    display: flex !important; /* 确保显示flex */
-    flex-direction: column;
-  }
-  .chat-messages {
-    overflow-y: auto; /* 聊天内容允许滚动 */
-    -webkit-overflow-scrolling: touch; /* iOS顺滑滚动 */
-  }
-}
+    /* 输入区 */
+    .chat-input {
+      display: flex;
+      padding: 14px 18px;
+      background-color: #F7F8FC;
+      border-top: 1px solid #E5E3F4;
+      flex-shrink: 0; /* 不收缩 */
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 1px solid #C3B7F0;
+      border-radius: 10px;
+      background-color: white;
+      transition: border-color 0.3s;
+    }
+
+    .chat-input input:focus {
+      border-color: #8B6ECF;
+      outline: none;
+    }
+
+    .chat-input button {
+      padding: 12px 18px;
+      margin-left: 14px;
+      font-size: 16px;
+      background-color: #6A4FB6;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    .chat-input button:hover {
+      background-color: #593aa5;
+      box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
+    }
+
+    /* 手机端禁止滚动，聊天框占满屏幕 */
+    @media (max-width: 768px) {
+      html, body {
+        height: 100%;
+        overflow: hidden; /* 禁止页面上下滚动 */
+        touch-action: none; /* 防止触摸滑动 */
+      }
+      #chatContainer {
+        height: 100vh; /* 占满视口高度 */
+        display: flex !important; /* 确保显示flex */
+        flex-direction: column;
+      }
+      .chat-messages {
+        overflow-y: auto; /* 聊天内容允许滚动 */
+        -webkit-overflow-scrolling: touch; /* iOS顺滑滚动 */
+      }
+    }
   </style>
 </head>
 <body>
 
-<!-- 房间输入 -->
-<div id="roomEntry">
-  <div>
-    <input id="roomInput" placeholder="输入房间号" />
-    <button id="joinBtn">加入房间</button>
+  <!-- 房间输入 -->
+  <div id="roomEntry">
+    <div>
+      <input id="roomInput" placeholder="输入房间号" />
+      <button id="joinBtn">加入房间</button>
+    </div>
   </div>
-</div>
 
 <!-- 聊天界面 -->
-<div class="chat-container" id="chatContainer">
+<div class="chat-container" id="chatContainer" style="display:none;">
   <div class="chat-header">
+    <button id="callBtn" class="call-btn" title="语音通话" aria-label="语音通话">
+      📞
+    </button>
     房间中（支持语音+文字）
     <span id="statusIndicator">⚫ 离线</span>
   </div>
+
   <div class="chat-messages" id="messages"></div>
+  
   <div class="chat-input">
     <input id="msgInput" placeholder="输入消息..." />
     <button id="sendBtn">发送</button>
-    <button id="callBtn">语音通话</button>
   </div>
 </div>
 
-<script>
-let socket, pc, dataChannel, roomId, localStream;
-let isInitiator = false;
-let currentStatus = 'disconnected'; // disconnected | connected | calling
 
-document.getElementById('joinBtn').onclick = joinRoom;
-document.getElementById('sendBtn').onclick = sendMessage;
-document.getElementById('callBtn').onclick = startCall;
+  <script>
+  // 你的JS，保持不变
+  let socket, pc, dataChannel, roomId, localStream;
+  let isInitiator = false;
+  let currentStatus = 'disconnected'; // disconnected | connected | calling
 
-function updateStatus(status) {
-  currentStatus = status;
-  const el = document.getElementById('statusIndicator');
-  if (!el) return;
+  document.getElementById('joinBtn').onclick = joinRoom;
+  document.getElementById('sendBtn').onclick = sendMessage;
+  document.getElementById('callBtn').onclick = startCall;
 
-  if (status === 'connected') {
-    el.textContent = '🟢 在线';
-    el.style.color = 'green';
-  } else if (status === 'calling') {
-    el.textContent = '🔴 通话中';
-    el.style.color = 'red';
-  } else {
-    el.textContent = '⚫ 离线';
-    el.style.color = 'gray';
+  function updateStatus(status) {
+    currentStatus = status;
+    const el = document.getElementById('statusIndicator');
+    if (!el) return;
+
+    if (status === 'connected') {
+      el.textContent = '🟢 在线';
+      el.style.color = 'green';
+    } else if (status === 'calling') {
+      el.textContent = '🔴 通话中';
+      el.style.color = 'red';
+    } else {
+      el.textContent = '⚫ 离线';
+      el.style.color = 'gray';
+    }
   }
-}
 
-function joinRoom() {
-  roomId = document.getElementById('roomInput').value.trim();
-  if (!roomId) return alert("请输入房间号");
+  function joinRoom() {
+    roomId = document.getElementById('roomInput').value.trim();
+    if (!roomId) return alert("请输入房间号");
 
-  document.getElementById('roomEntry').style.display = 'none';
-  document.getElementById('chatContainer').style.display = 'flex';
+    document.getElementById('roomEntry').style.display = 'none';
+    document.getElementById('chatContainer').style.display = 'flex';
 
-  socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
+    socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
 
-  socket.onopen = () => {
-    console.log("✅ 已连接信令服务器");
-    socket.send(JSON.stringify({ type: 'join', roomId }));
-  };
+    socket.onopen = () => {
+      console.log("✅ 已连接信令服务器");
+      socket.send(JSON.stringify({ type: 'join', roomId }));
+    };
 
-  socket.onmessage = async (event) => {
-    const msg = JSON.parse(event.data);
-    if (msg.type === 'joined') {
-      isInitiator = msg.initiator || false;
-      createPeer();
-    } 
-    else if (msg.type === 'peer-joined') {
-      // 对方加入，只有非 initiator 端需要创建 Peer（防止重复创建）
-      if (!isInitiator && !pc) createPeer();
-    }
-    else if (msg.type === 'signal') {
-      await handleSignal(msg.payload);
-    }
-    else if (msg.type === 'history') {
-      // 显示历史消息
-      if (Array.isArray(msg.messages)) {
-        msg.messages.forEach(m => {
-          appendMessage(`${m.from || '匿名'}: ${m.content}`, false);
-        });
+    socket.onmessage = async (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'joined') {
+        isInitiator = msg.initiator || false;
+        createPeer();
+      } 
+      else if (msg.type === 'peer-joined') {
+        // 对方加入，只有非 initiator 端需要创建 Peer（防止重复创建）
+        if (!isInitiator && !pc) createPeer();
       }
-    }
-    else if (msg.type === 'message') {
-      // 服务端广播的文字消息（其他人发来的）
-      const p = msg.payload;
-      if (p && p.content) appendMessage(`${p.from || '匿名'}: ${p.content}`, false);
-    }
-  };
+      else if (msg.type === 'signal') {
+        await handleSignal(msg.payload);
+      }
+      else if (msg.type === 'history') {
+        // 显示历史消息
+        if (Array.isArray(msg.messages)) {
+          msg.messages.forEach(m => {
+            appendMessage(`${m.from || '匿名'}: ${m.content}`, false);
+          });
+        }
+      }
+      else if (msg.type === 'message') {
+        // 服务端广播的文字消息（其他人发来的）
+        const p = msg.payload;
+        if (p && p.content) appendMessage(`${p.from || '匿名'}: ${p.content}`, false);
+      }
+    };
 
-  socket.onerror = (err) => console.error("WebSocket 错误：", err);
-  socket.onclose = () => {
-    console.warn("WebSocket 已关闭");
-    updateStatus('disconnected');
-  };
-}
-
-function createPeer() {
-  pc = new RTCPeerConnection({
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-  });
-
-  pc.onicecandidate = e => {
-    if (e.candidate) {
-      socket.send(JSON.stringify({
-        type: 'signal',
-        roomId,
-        payload: { candidate: e.candidate }
-      }));
-    }
-  };
-
-  pc.ontrack = e => {
-    const remoteAudio = new Audio();
-    remoteAudio.srcObject = e.streams[0];
-    remoteAudio.autoplay = true;
-    console.log("✅ 收到远程音频流");
-    updateStatus('calling');
-  };
-
-  pc.ondatachannel = e => {
-    dataChannel = e.channel;
-    setupDataChannel();
-  };
-
-  pc.onconnectionstatechange = () => {
-    const state = pc.connectionState;
-    console.log("连接状态变化：", state);
-
-    if (state === 'connected') {
-      updateStatus(localStream ? 'calling' : 'connected');
-    } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+    socket.onerror = (err) => console.error("WebSocket 错误：", err);
+    socket.onclose = () => {
+      console.warn("WebSocket 已关闭");
       updateStatus('disconnected');
-    }
-  };
-
-  if (isInitiator) {
-    dataChannel = pc.createDataChannel('chat');
-    setupDataChannel();
+    };
   }
-}
 
-function setupDataChannel() {
+  function createPeer() {
+    pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+
+    pc.onicecandidate = e => {
+      if (e.candidate) {
+        socket.send(JSON.stringify({
+          type: 'signal',
+          roomId,
+          payload: { candidate: e.candidate }
+        }));
+      }
+    };
+
+    pc.ontrack = e => {
+      const remoteAudio = new Audio();
+      remoteAudio.srcObject = e.streams[0];
+      remoteAudio.autoplay = true;
+      console.log("✅ 收到远程音频流");
+      updateStatus('calling');
+    };
+
+    pc.ondatachannel = e => {
+      dataChannel = e.channel;
+      setupDataChannel();
+    };
+
+    pc.onconnectionstatechange = () => {
+      const state = pc.connectionState;
+      console.log("连接状态变化：", state);
+
+      if (state === 'connected') {
+        updateStatus(localStream ? 'calling' : 'connected');
+      } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+        updateStatus('disconnected');
+      }
+    };
+
+    if (isInitiator) {
+      dataChannel = pc.createDataChannel('chat');
+      setupDataChannel();
+    }
+  }
+
+  function setupDataChannel() {
   dataChannel.onopen = () => {
     console.log("✅ DataChannel 已连接");
     if (currentStatus !== 'calling') updateStatus('connected');
@@ -429,8 +473,7 @@ async function getLocalStream() {
     }
   }
 }
-</script>
-
+</script> 
 
 </body>
-</html>  
+</html> 
