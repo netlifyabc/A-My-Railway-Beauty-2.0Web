@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -265,13 +266,14 @@ html, body {
 </head>
 <body>
 
-<!-- 房间输入 -->
 <div id="roomEntry">
   <div>
+    <input id="nameInput" placeholder="你的名字" />
     <input id="roomInput" placeholder="输入房间号" />
     <button id="joinBtn">加入房间</button>
   </div>
 </div>
+
 
 <!-- 聊天界面 -->
 <div class="chat-container" id="chatContainer" style="display:none;">
@@ -290,7 +292,7 @@ html, body {
   
   <div class="chat-input">
     <input id="msgInput" placeholder="输入消息..." />
-    <button id="sendBtn">发送3</button>
+    <button id="sendBtn">发送</button>
   </div>
 </div> 
 
@@ -298,34 +300,17 @@ html, body {
 
 </nav>
 <script>
-let socket, pc, roomId, localStream;
+let socket, pc, localStream, roomId, userName;
 let isInitiator = false;
-let currentStatus = 'disconnected'; // disconnected | connected | calling
 
 document.getElementById('joinBtn').onclick = joinRoom;
 document.getElementById('sendBtn').onclick = sendMessage;
 document.getElementById('callBtn').onclick = startCall;
 
-function updateStatus(status) {
-  currentStatus = status;
-  const el = document.getElementById('statusIndicator');
-  if (!el) return;
-
-  if (status === 'connected') {
-    el.textContent = '🟢 在线';
-    el.style.color = 'green';
-  } else if (status === 'calling') {
-    el.textContent = '🔴 通话中';
-    el.style.color = 'red';
-  } else {
-    el.textContent = '⚫ 离线';
-    el.style.color = 'gray';
-  }
-}
-
 function joinRoom() {
   roomId = document.getElementById('roomInput').value.trim();
-  if (!roomId) return alert("请输入房间号");
+  userName = document.getElementById('nameInput').value.trim();
+  if (!roomId || !userName) return alert("请输入昵称和房间号");
 
   document.getElementById('roomEntry').style.display = 'none';
   document.getElementById('chatContainer').style.display = 'flex';
@@ -333,39 +318,67 @@ function joinRoom() {
   socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
 
   socket.onopen = () => {
-    console.log("✅ 已连接信令服务器");
-    socket.send(JSON.stringify({ type: 'join', roomId }));
+    socket.send(JSON.stringify({ type: 'join', roomId, name: userName }));
+    updateStatus('connected');
   };
 
   socket.onmessage = async (event) => {
     const msg = JSON.parse(event.data);
-    console.log('收到消息:', msg);
+    console.log("📩 收到消息：", msg);
 
-    if (msg.type === 'joined') {
-      isInitiator = msg.initiator || false;
-      createPeer();
-    } else if (msg.type === 'peer-joined') {
-      isInitiator = true;
-      createPeer();
-    } else if (msg.type === 'signal') {
-      await handleSignal(msg.payload);
-    } else if (msg.type === 'message') {
-      // 改动：显示消息时带发送者名字，区分“我”和“对方”
-      const from = msg.payload.from || '对方';
-      const content = msg.payload.content || '';
-      const isMe = (from === '我');  // 如果消息是自己发的，就标记true
-      appendMessage(`${from}: ${content}`, isMe);
+    switch (msg.type) {
+      case 'joined':
+        isInitiator = msg.initiator || false;
+        appendMessage(`系统: 已加入房间 ${roomId}`, true);
+        createPeer();
+        break;
+
+      case 'peer-joined':
+        appendMessage(`系统: ${msg.name || '新用户'} 加入了房间`, false);
+        isInitiator = true;
+        createPeer();
+        break;
+
+      case 'history':
+        msg.messages?.forEach(m => {
+          appendMessage(`${m.from}: ${m.content}`, m.from === userName);
+        });
+        break;
+
+      case 'message':
+        const p = msg.payload || {};
+        appendMessage(`${p.from}: ${p.content}`, p.from === userName);
+        break;
+
+      case 'signal':
+        await handleSignal(msg.payload);
+        break;
+
+      case 'peer-left':
+        appendMessage(`系统: ${msg.name || '对方'} 已离开`, false);
+        if (pc) {
+          pc.close();
+          pc = null;
+        }
+        updateStatus('connected');
+        break;
+
+      case 'error':
+        appendMessage(`错误: ${msg.message}`, false);
+        break;
     }
   };
 
-  socket.onerror = (err) => console.error("WebSocket 错误：", err);
+  socket.onerror = err => console.error("WebSocket 错误：", err);
   socket.onclose = () => {
-    console.warn("WebSocket 已关闭");
     updateStatus('disconnected');
+    if (pc) pc.close();
   };
 }
 
 function createPeer() {
+  if (pc) return;
+
   pc = new RTCPeerConnection({
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
   });
@@ -381,54 +394,22 @@ function createPeer() {
   };
 
   pc.ontrack = e => {
-    const remoteAudio = new Audio();
+    const remoteAudio = document.createElement('audio');
     remoteAudio.srcObject = e.streams[0];
     remoteAudio.autoplay = true;
-    console.log("✅ 收到远程音频流");
+    document.body.appendChild(remoteAudio);
     updateStatus('calling');
   };
 
   pc.onconnectionstatechange = () => {
     const state = pc.connectionState;
-    console.log("连接状态变化：", state);
-
+    console.log("连接状态：", state);
     if (state === 'connected') {
       updateStatus(localStream ? 'calling' : 'connected');
-    } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+    } else if (['disconnected', 'failed', 'closed'].includes(state)) {
       updateStatus('disconnected');
     }
   };
-}
-
-function sendMessage() {
-  const input = document.getElementById('msgInput');
-  const txt = input.value.trim();
-  if (!txt || !socket || socket.readyState !== WebSocket.OPEN) return;
-
-  // 通过 WebSocket 发送文字消息，避免 DataChannel 冲突
-  socket.send(JSON.stringify({
-    type: 'message',
-    roomId,
-    payload: {
-      from: '我',    // 发送者标记为“我”
-      content: txt
-    }
-  }));
-
-  // 显示自己发送的消息
-  appendMessage(`我: ${txt}`, true);
-  input.value = '';
-}
-
-// 改动：带发信人名字的消息展示
-function appendMessage(txt, isMe) {
-  const box = document.getElementById('messages');
-  const div = document.createElement('div');
-  div.textContent = txt;
-  div.style.color = isMe ? 'blue' : 'black';  // 自己的消息蓝色，对方黑色
-  div.style.margin = '4px 0';
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
 }
 
 async function handleSignal(data) {
@@ -437,7 +418,7 @@ async function handleSignal(data) {
 
     if (data.sdp.type === 'offer') {
       await getLocalStream();
-      localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       socket.send(JSON.stringify({
@@ -450,7 +431,7 @@ async function handleSignal(data) {
     try {
       await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
     } catch (err) {
-      console.warn('添加 ICE 出错：', err);
+      console.warn("添加 ICE 候选失败：", err);
     }
   }
 }
@@ -458,7 +439,7 @@ async function handleSignal(data) {
 async function startCall() {
   try {
     await getLocalStream();
-    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     socket.send(JSON.stringify({
@@ -466,10 +447,9 @@ async function startCall() {
       roomId,
       payload: { sdp: offer }
     }));
-    console.log("🎤 发起语音通话");
     updateStatus('calling');
   } catch (err) {
-    alert("语音通话失败：" + err.message);
+    alert("启动语音失败：" + err.message);
   }
 }
 
@@ -483,34 +463,64 @@ async function getLocalStream() {
           autoGainControl: false
         }
       });
-      console.log("🎙️ 获取麦克风成功");
+      console.log("🎤 获取本地音频成功");
     } catch (err) {
-      alert("无法访问麦克风: " + err.message);
+      alert("无法访问麦克风：" + err.message);
       throw err;
     }
   }
 }
 
-function setChatContainerHeight() {
-  const chatContainer = document.querySelector('.chat-container');
-  if (!chatContainer) return;
+function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text || socket.readyState !== WebSocket.OPEN) return;
 
-  const vh = window.innerHeight;
-  chatContainer.style.height = vh + 'px';
+  socket.send(JSON.stringify({
+    type: 'message',
+    roomId,
+    payload: {
+      from: userName,
+      content: text
+    }
+  }));
+
+  input.value = '';
 }
 
-window.addEventListener('resize', setChatContainerHeight);
-window.addEventListener('orientationchange', setChatContainerHeight);
-window.addEventListener('load', setChatContainerHeight);
+function appendMessage(txt, isMe) {
+  const box = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.textContent = txt;
+  div.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
+  div.style.backgroundColor = isMe ? '#D0F0FF' : '#EEE';
+  div.style.padding = '6px 10px';
+  div.style.margin = '4px';
+  div.style.borderRadius = '8px';
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
 
-const chatInput = document.querySelector('.chat-input input');
-if (chatInput) {
-  chatInput.addEventListener('focus', setChatContainerHeight);
-  chatInput.addEventListener('blur', setChatContainerHeight);
+function updateStatus(status) {
+  const el = document.getElementById('statusIndicator');
+  el.textContent = {
+    connected: '🟢 在线',
+    calling: '🔴 通话中',
+    disconnected: '⚫ 离线'
+  }[status] || '⚫ 离线';
+
+  el.style.color = {
+    connected: 'green',
+    calling: 'red',
+    disconnected: 'gray'
+  }[status] || 'gray';
 }
 </script>
+</body> 
 
-</body>
 
 
-</html> 
+
+
+
+</html>  
