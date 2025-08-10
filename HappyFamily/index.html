@@ -303,8 +303,11 @@ let socket, pc, dataChannel, roomId, localStream;
 let isInitiator = false;
 let currentStatus = 'disconnected'; // disconnected | connected | calling
 
+const sendBtn = document.getElementById('sendBtn');
+sendBtn.disabled = true; // 默认禁用发送按钮
+
 document.getElementById('joinBtn').onclick = joinRoom;
-document.getElementById('sendBtn').onclick = sendMessage;
+sendBtn.onclick = sendMessage;
 document.getElementById('callBtn').onclick = startCall;
 
 function updateStatus(status) {
@@ -359,6 +362,7 @@ function joinRoom() {
   socket.onclose = () => {
     console.warn("WebSocket 已关闭");
     updateStatus('disconnected');
+    sendBtn.disabled = true;
   };
 }
 
@@ -398,6 +402,7 @@ function createPeer() {
       updateStatus(localStream ? 'calling' : 'connected');
     } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
       updateStatus('disconnected');
+      sendBtn.disabled = true;
     }
   };
 
@@ -410,12 +415,19 @@ function createPeer() {
 function setupDataChannel() {
   dataChannel.onopen = () => {
     console.log("✅ DataChannel 已连接");
-    if (currentStatus !== 'calling') updateStatus('connected');
+    updateStatus(currentStatus === 'calling' ? 'calling' : 'connected');
+    sendBtn.disabled = false; // 通道打开，允许发送消息
   };
 
   dataChannel.onclose = () => {
     console.log("❌ DataChannel 已关闭");
     updateStatus('disconnected');
+    sendBtn.disabled = true; // 关闭通道，禁止发送
+  };
+
+  dataChannel.onerror = (err) => {
+    console.error("DataChannel 错误：", err);
+    sendBtn.disabled = true;
   };
 
   dataChannel.onmessage = e => appendMessage(e.data, false);
@@ -424,7 +436,18 @@ function setupDataChannel() {
 function sendMessage() {
   const input = document.getElementById('msgInput');
   const txt = input.value.trim();
-  if (!txt || !dataChannel || dataChannel.readyState !== 'open') return;
+
+  if (!txt) return alert("请输入消息内容");
+
+  if (!dataChannel) {
+    alert("消息通道未建立，请稍后再试");
+    return;
+  }
+
+  if (dataChannel.readyState !== 'open') {
+    alert("消息通道未打开，无法发送");
+    return;
+  }
 
   dataChannel.send(txt);
   appendMessage(txt, true);
@@ -524,7 +547,4 @@ if (chatInput) {
 </script>
 
 </body>
-
-
-
-</html>  
+</html>   
