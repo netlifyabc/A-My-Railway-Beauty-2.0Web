@@ -5,202 +5,189 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>简易 WebRTC 聊天</title>
   <style>
-    html, body {
-      margin: 0; padding: 0;
-      height: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background-color: #F7F8FC; /* 清淡银河灰 */
-      color: #2B2346; /* 深星紫 */
-    }
+   
+   html, body {
+  margin: 0; padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #F7F8FC; /* 清淡银河灰 */
+  color: #2B2346; /* 深星紫 */
+}
 
-    /* 房间输入界面 */
-    #roomEntry {
-      display: flex;
-      height: 100vh;
-      align-items: center;
-      justify-content: center;
-      background-color: #F7F8FC;
-    }
+/* 房间输入界面 */
+#roomEntry {
+  display: flex;
+  height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background-color: #F7F8FC;
+}
 
-    #roomEntry input {
-      padding: 10px 14px;
-      border: 1px solid #C3B7F0; /* 柔和蓝紫边框 */
-      border-radius: 10px;
-      font-size: 16px;
-      background-color: white;
-      transition: border-color 0.2s;
-    }
+#roomEntry input {
+  padding: 10px 14px;
+  border: 1px solid #C3B7F0; /* 柔和蓝紫边框 */
+  border-radius: 10px;
+  font-size: 16px;
+  background-color: white;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
 
-    #roomEntry input:focus {
-      border-color: #8B6ECF; /* 主色调聚焦 */
-      outline: none;
-    }
+#roomEntry input:focus {
+  border-color: #8B6ECF; /* 主色调聚焦 */
+  outline: none;
+}
 
-    #roomEntry button {
-      padding: 10px 16px;
-      margin-left: 12px;
-      background-color: #6A4FB6; /* 宇宙蓝紫 */
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
-      transition: background-color 0.3s, box-shadow 0.3s;
-    }
+#roomEntry button {
+  padding: 10px 16px;
+  margin-left: 12px;
+  background-color: #6A4FB6; /* 宇宙蓝紫 */
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
 
-    #roomEntry button:hover {
-      background-color: #593aa5;
-      box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
-    }
+#roomEntry button:hover {
+  background-color: #593aa5;
+  box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
+}
 
-    /* 聊天容器 */
-    #chatContainer {
-      display: none;
-      flex-direction: column;
-      height: 100vh;
-      background-color: #F7F8FC;
+/* 聊天容器 */
+#chatContainer {
+  display: none;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #F7F8FC;
+  display: flex;
+}
 
-      /* flex容器 */
-      display: flex;
-    }
+/* 头部 */
+.chat-header {
+  padding: 14px 16px;
+  padding-left: 60px; /* 给左边多留出点空间给按钮 */
+  background-color: #6A4FB6;
+  color: white;
+  text-align: center;
+  font-weight: 600;
+  font-size: 16px;
+  position: relative;
+  box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
+  user-select: none;
 
-    /* 头部 */
-    .chat-header {
-      padding: 14px 16px;
-      padding-left: 60px; /* 给左边多留出点空间给按钮 */
-      background-color: #6A4FB6;
-      color: white;
-      text-align: center;
-      font-weight: 600;
-      font-size: 16px;
-      position: relative;
-      box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
-      user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-shrink: 0; /* 不收缩 */
+}
 
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      flex-shrink: 0; /* 不收缩 */
-    }
+/* 语音按钮样式 */
+.call-btn {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #8B6ECF;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(139, 110, 207, 0.6);
+  transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  z-index: 10;
+}
 
-    /* 语音按钮样式 */
-    .call-btn {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background-color: #8B6ECF;
-      border: none;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      font-size: 20px;
-      color: white;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(139, 110, 207, 0.6);
-      transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      z-index: 10;
-    }
+.call-btn:hover {
+  background-color: #6A4FB6;
+  box-shadow: 0 4px 12px rgba(106, 79, 182, 0.8);
+  transform: translateY(-50%) scale(1.1);
+}
 
-    .call-btn:hover {
-      background-color: #6A4FB6;
-      box-shadow: 0 4px 12px rgba(106, 79, 182, 0.8);
-      transform: translateY(-50%) scale(1.1);
-    }
+.call-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
 
-    .call-btn:active {
-      transform: translateY(-50%) scale(0.95);
-    }
+#statusIndicator {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+}
 
-    #statusIndicator {
-      position: absolute;
-      right: 16px;
-      top: 14px;
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.75);
-    }
+/* 聊天内容区 */
+.chat-messages {
+  flex: 1 1 auto; /* 关键：撑满剩余空间 */
+  padding: 32px 16px 16px 16px; /* 顶部多加点内边距 */
+  overflow-y: auto;
+  background-color: #ffffff;
+  border-top: 1px solid #E5E3F4;
+  border-bottom: 1px solid #E5E3F4;
+  box-sizing: border-box; /* 确保padding计算在内 */
+}
 
-    /* 聊天内容区 */
-    .chat-messages {
-      flex: 1 1 auto; /* 关键：撑满剩余空间 */
-      padding: 32px 16px 16px 16px; /* 顶部多加点内边距 */
-      overflow-y: auto;
-      background-color: #ffffff;
-      border-top: 1px solid #E5E3F4;
-      border-bottom: 1px solid #E5E3F4;
-      box-sizing: border-box; /* 确保padding计算在内 */
-    }
+/* 聊天气泡 */
+.chat-messages div {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  max-width: 70%;
+  word-break: break-word;
+  font-size: 15px;
+  background-color: #ECE8FF; /* 淡紫色泡泡 */
+  color: #2B2346;
+  box-shadow: 0 1px 4px rgba(106, 79, 182, 0.15);
+  transition: background-color 0.3s;
+}
 
-    /* 聊天气泡 */
-    .chat-messages div {
-      margin-bottom: 12px;
-      padding: 10px 14px;
-      border-radius: 14px;
-      max-width: 70%;
-      word-break: break-word;
-      font-size: 15px;
-      background-color: #ECE8FF; /* 淡紫色泡泡 */
-      color: #2B2346;
-      box-shadow: 0 1px 4px rgba(106, 79, 182, 0.15);
-      transition: background-color 0.3s;
-    }
+/* 输入区 */
+.chat-input {
+  display: flex;
+  padding: 14px 18px;
+  background-color: #F7F8FC;
+  border-top: 1px solid #E5E3F4;
+  flex-shrink: 0; /* 不收缩 */
+  box-sizing: border-box;
+  align-items: center; /* 保证垂直居中 */
+}
 
-    /* “我”的气泡样式 */
-    /* 这里你用JS控制了背景色，CSS里不用写 :has() 了 */
+.chat-input input {
+  flex: 1;
+  height: 40px;
+  padding: 0 16px; /* 取消上下内边距，避免高度异常 */
+  font-size: 16px;
+  border: 1px solid #C3B7F0;
+  border-radius: 10px;
+  background-color: white;
+  box-sizing: border-box;
+  line-height: 40px; /* 保持文本垂直居中 */
+  outline-offset: 0;
+  transition: border-color 0.3s;
+}
 
-    /* 输入区 */
-    .chat-input {
-      display: flex;
-      padding: 14px 18px;
-      background-color: #F7F8FC;
-      border-top: 1px solid #E5E3F4;
-      flex-shrink: 0; /* 不收缩 */
-    }
+.chat-input input:focus {
+  border-color: #8B6ECF;
+  outline: none;
+}
 
-    .chat-input input {
-      flex: 1;
-      padding: 12px 16px;
-      font-size: 16px;
-      border: 1px solid #C3B7F0;
-      border-radius: 10px;
-      background-color: white;
-      transition: border-color 0.3s;
-    }
-
-    .chat-input input:focus {
-      border-color: #8B6ECF;
-      outline: none;
-    }
-
-    .chat-input button {
-      padding: 12px 18px;
-      margin-left: 14px;
-      font-size: 16px;
-      background-color: #6A4FB6;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(106, 79, 182, 0.4);
-      transition: background-color 0.3s, box-shadow 0.3s;
-    }
-
-    .chat-input button:hover {
-      background-color: #593aa5;
-      box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
-    } 
-
-    #sendBtn {
-  width: 150px;            /* 按钮更宽 */
-  padding: 12px 24px;        /* 内边距更大，按钮更高 */
-  font-size: 18px;           /* 字体更大 */
-  font-weight: 600;          /* 字体加粗 */
+.chat-input button {
+  width: 150px; /* 按钮更宽 */
+  height: 40px;
+  padding: 0 24px; /* 内边距更大 */
+  margin-left: 14px;
+  font-size: 16px;
+  font-weight: 600;
   background-color: #7B5EEA; /* 更亮的紫色背景 */
   color: white;
   border: none;
@@ -208,21 +195,24 @@
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(123, 94, 234, 0.6);
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-#sendBtn:hover {
+.chat-input button:hover {
   background-color: #6846D9;
   box-shadow: 0 6px 18px rgba(104, 70, 217, 0.8);
 }
 
-#sendBtn:active {
+.chat-input button:active {
   background-color: #5738B5;
   box-shadow: 0 2px 8px rgba(87, 56, 181, 0.9);
   transform: scale(0.98);
 }
 
-
-    @media (max-width: 768px) {
+@media (max-width: 768px) {
   html, body {
     height: 100%;
     margin: 0;
@@ -256,11 +246,21 @@
     box-sizing: border-box;
     background: #F7F8FC;
     border-top: 1px solid #E5E3F4;
+    align-items: center;
   }
 
   .chat-input input {
-    font-size: 16px;
     height: 40px;
+    font-size: 16px;
+    padding: 0 12px;
+    line-height: 40px;
+  }
+
+  .chat-input button {
+    width: 120px;
+    height: 40px;
+    padding: 0 20px;
+    font-size: 16px;
   }
 }
 
@@ -296,7 +296,6 @@
 </div>
 
 <script>
-  // 你的JS，保持不变
   let socket, pc, dataChannel, roomId, localStream;
   let isInitiator = false;
   let currentStatus = 'disconnected'; // disconnected | connected | calling
@@ -305,10 +304,10 @@
   document.getElementById('sendBtn').onclick = sendMessage;
   document.getElementById('callBtn').onclick = startCall;
 
-  // 新增：监听回车发送消息
+  // 监听回车发送消息
   document.getElementById('msgInput').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
-      e.preventDefault();  // 防止回车换行
+      e.preventDefault();  // 防止换行
       sendMessage();
     }
   });
@@ -351,14 +350,12 @@
         createPeer();
       } 
       else if (msg.type === 'peer-joined') {
-        // 对方加入，只有非 initiator 端需要创建 Peer（防止重复创建）
         if (!isInitiator && !pc) createPeer();
       }
       else if (msg.type === 'signal') {
         await handleSignal(msg.payload);
       }
       else if (msg.type === 'history') {
-        // 显示历史消息
         if (Array.isArray(msg.messages)) {
           msg.messages.forEach(m => {
             appendMessage(`${m.from || '匿名'}: ${m.content}`, false);
@@ -366,7 +363,6 @@
         }
       }
       else if (msg.type === 'message') {
-        // 服务端广播的文字消息（其他人发来的）
         const p = msg.payload;
         if (p && p.content) appendMessage(`${p.from || '匿名'}: ${p.content}`, false);
       }
@@ -440,23 +436,32 @@
     };
   }
 
+  // 修改后的 sendMessage，支持离线异步发送
   function sendMessage() {
     const input = document.getElementById('msgInput');
     const txt = input.value.trim();
-    if (!txt || !dataChannel || dataChannel.readyState !== 'open') return;
+    if (!txt) return alert("消息不能为空");
 
-    // 先通过 DataChannel 发给对方
-    dataChannel.send(txt);
+    // 本地显示
     appendMessage('我: ' + txt, true);
     input.value = '';
 
-    // 通过信令服务器存储消息（调用后端 messageStore 缓存）
+    // DataChannel 开启时实时发给对方
+    if (dataChannel && dataChannel.readyState === 'open') {
+      dataChannel.send(txt);
+    } else {
+      console.log("DataChannel 未连接，消息通过信令服务器异步发送");
+    }
+
+    // 无论如何都通过信令服务器发送，确保消息持久化与异步转发
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({
         type: 'message',
         roomId,
         payload: { from: '我', content: txt }
       }));
+    } else {
+      alert("信令服务器未连接，消息暂时无法发送");
     }
   }
 
@@ -534,6 +539,12 @@
   }
 </script>
 
+
 </body>
+
+
+
+
+
 
 </html> 
