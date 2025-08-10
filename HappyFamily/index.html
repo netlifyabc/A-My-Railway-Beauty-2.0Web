@@ -194,25 +194,77 @@
     .chat-input button:hover {
       background-color: #593aa5;
       box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
-    }
+    } 
 
-    /* 手机端禁止滚动，聊天框占满屏幕 */
+    #sendBtn {
+  width: 150px;            /* 按钮更宽 */
+  padding: 12px 24px;        /* 内边距更大，按钮更高 */
+  font-size: 18px;           /* 字体更大 */
+  font-weight: 600;          /* 字体加粗 */
+  background-color: #7B5EEA; /* 更亮的紫色背景 */
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(123, 94, 234, 0.6);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#sendBtn:hover {
+  background-color: #6846D9;
+  box-shadow: 0 6px 18px rgba(104, 70, 217, 0.8);
+}
+
+#sendBtn:active {
+  background-color: #5738B5;
+  box-shadow: 0 2px 8px rgba(87, 56, 181, 0.9);
+  transform: scale(0.98);
+}
+
+
     @media (max-width: 768px) {
-      html, body {
-        height: 100%;
-        overflow: hidden; /* 禁止页面上下滚动 */
-        touch-action: none; /* 防止触摸滑动 */
-      }
-      #chatContainer {
-        height: 100vh; /* 占满视口高度 */
-        display: flex !important; /* 确保显示flex */
-        flex-direction: column;
-      }
-      .chat-messages {
-        overflow-y: auto; /* 聊天内容允许滚动 */
-        -webkit-overflow-scrolling: touch; /* iOS顺滑滚动 */
-      }
-    }
+  html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* 禁止页面上下滚动 */
+    touch-action: manipulation; /* 允许基本触摸操作 */
+  }
+
+  #chatContainer {
+    display: flex !important;
+    flex-direction: column;
+    height: 100vh; /* 占满视口高度 */
+    max-height: 100vh;
+  }
+
+  .chat-header {
+    flex: 0 0 48px; /* 固定高度 */
+    line-height: 48px;
+    padding-left: 60px; /* 保持左边按钮空间 */
+  }
+
+  .chat-messages {
+    flex: 1 1 auto; /* 自适应占满剩余空间 */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* iOS顺滑滚动 */
+    padding: 16px;
+  }
+
+  .chat-input {
+    flex: 0 0 56px; /* 输入框固定高度 */
+    padding: 8px 12px;
+    box-sizing: border-box;
+    background: #F7F8FC;
+    border-top: 1px solid #E5E3F4;
+  }
+
+  .chat-input input {
+    font-size: 16px;
+    height: 40px;
+  }
+}
+
+
   </style>
 </head>
 <body>
