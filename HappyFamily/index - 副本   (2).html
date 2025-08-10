@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -290,7 +291,7 @@ html, body {
   
   <div class="chat-input">
     <input id="msgInput" placeholder="输入消息..." />
-    <button id="sendBtn">发送3</button>
+    <button id="sendBtn">发送</button>
   </div>
 </div> 
 
@@ -298,7 +299,7 @@ html, body {
 
 </nav>
 <script>
-let socket, pc, roomId, localStream;
+let socket, pc, dataChannel, roomId, localStream;
 let isInitiator = false;
 let currentStatus = 'disconnected'; // disconnected | connected | calling
 
@@ -339,22 +340,18 @@ function joinRoom() {
 
   socket.onmessage = async (event) => {
     const msg = JSON.parse(event.data);
-    console.log('收到消息:', msg);
-
     if (msg.type === 'joined') {
       isInitiator = msg.initiator || false;
       createPeer();
-    } else if (msg.type === 'peer-joined') {
+    }
+
+    if (msg.type === 'peer-joined') {
       isInitiator = true;
       createPeer();
-    } else if (msg.type === 'signal') {
-      await handleSignal(msg.payload);
-    } else if (msg.type === 'message') {
-      // 改动：显示消息时带发送者名字，区分“我”和“对方”
-      const from = msg.payload.from || '对方';
-      const content = msg.payload.content || '';
-      const isMe = (from === '我');  // 如果消息是自己发的，就标记true
-      appendMessage(`${from}: ${content}`, isMe);
+    }
+
+    if (msg.type === 'signal') {
+      handleSignal(msg.payload);
     }
   };
 
@@ -388,6 +385,11 @@ function createPeer() {
     updateStatus('calling');
   };
 
+  pc.ondatachannel = e => {
+    dataChannel = e.channel;
+    setupDataChannel();
+  };
+
   pc.onconnectionstatechange = () => {
     const state = pc.connectionState;
     console.log("连接状态变化：", state);
@@ -398,35 +400,41 @@ function createPeer() {
       updateStatus('disconnected');
     }
   };
+
+  if (isInitiator) {
+    dataChannel = pc.createDataChannel('chat');
+    setupDataChannel();
+  }
+}
+
+function setupDataChannel() {
+  dataChannel.onopen = () => {
+    console.log("✅ DataChannel 已连接");
+    if (currentStatus !== 'calling') updateStatus('connected');
+  };
+
+  dataChannel.onclose = () => {
+    console.log("❌ DataChannel 已关闭");
+    updateStatus('disconnected');
+  };
+
+  dataChannel.onmessage = e => appendMessage(e.data, false);
 }
 
 function sendMessage() {
   const input = document.getElementById('msgInput');
   const txt = input.value.trim();
-  if (!txt || !socket || socket.readyState !== WebSocket.OPEN) return;
+  if (!txt || !dataChannel || dataChannel.readyState !== 'open') return;
 
-  // 通过 WebSocket 发送文字消息，避免 DataChannel 冲突
-  socket.send(JSON.stringify({
-    type: 'message',
-    roomId,
-    payload: {
-      from: '我',    // 发送者标记为“我”
-      content: txt
-    }
-  }));
-
-  // 显示自己发送的消息
-  appendMessage(`我: ${txt}`, true);
+  dataChannel.send(txt);
+  appendMessage(txt, true);
   input.value = '';
 }
 
-// 改动：带发信人名字的消息展示
 function appendMessage(txt, isMe) {
   const box = document.getElementById('messages');
   const div = document.createElement('div');
-  div.textContent = txt;
-  div.style.color = isMe ? 'blue' : 'black';  // 自己的消息蓝色，对方黑色
-  div.style.margin = '4px 0';
+  div.textContent = (isMe ? '我: ' : '对方: ') + txt;
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 }
@@ -489,28 +497,34 @@ async function getLocalStream() {
       throw err;
     }
   }
-}
+} 
 
 function setChatContainerHeight() {
   const chatContainer = document.querySelector('.chat-container');
   if (!chatContainer) return;
 
+  // 取视口当前高度（不使用100vh）
   const vh = window.innerHeight;
+
   chatContainer.style.height = vh + 'px';
 }
 
+// 页面加载和窗口尺寸变化时调用
 window.addEventListener('resize', setChatContainerHeight);
 window.addEventListener('orientationchange', setChatContainerHeight);
 window.addEventListener('load', setChatContainerHeight);
 
+// 针对iOS输入框弹起，监听focus事件，调整高度
 const chatInput = document.querySelector('.chat-input input');
 if (chatInput) {
   chatInput.addEventListener('focus', setChatContainerHeight);
   chatInput.addEventListener('blur', setChatContainerHeight);
 }
+
 </script>
 
 </body>
 
 
-</html> 
+
+</html>  
