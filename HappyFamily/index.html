@@ -200,6 +200,7 @@ html, body {
     <button id="callBtn">语音通话</button>
   </div>
 </div>
+
 <script>
 let socket, pc, dataChannel, roomId, localStream;
 let isInitiator = false;
@@ -245,15 +246,26 @@ function joinRoom() {
     if (msg.type === 'joined') {
       isInitiator = msg.initiator || false;
       createPeer();
+    } 
+    else if (msg.type === 'peer-joined') {
+      // 对方加入，只有非 initiator 端需要创建 Peer（防止重复创建）
+      if (!isInitiator && !pc) createPeer();
     }
-
-    if (msg.type === 'peer-joined') {
-      isInitiator = true;
-      createPeer();
+    else if (msg.type === 'signal') {
+      await handleSignal(msg.payload);
     }
-
-    if (msg.type === 'signal') {
-      handleSignal(msg.payload);
+    else if (msg.type === 'history') {
+      // 显示历史消息
+      if (Array.isArray(msg.messages)) {
+        msg.messages.forEach(m => {
+          appendMessage(`${m.from || '匿名'}: ${m.content}`, false);
+        });
+      }
+    }
+    else if (msg.type === 'message') {
+      // 服务端广播的文字消息（其他人发来的）
+      const p = msg.payload;
+      if (p && p.content) appendMessage(`${p.from || '匿名'}: ${p.content}`, false);
     }
   };
 
@@ -320,7 +332,9 @@ function setupDataChannel() {
     updateStatus('disconnected');
   };
 
-  dataChannel.onmessage = e => appendMessage(e.data, false);
+  dataChannel.onmessage = e => {
+    appendMessage('对方: ' + e.data, false);
+  };
 }
 
 function sendMessage() {
@@ -328,15 +342,30 @@ function sendMessage() {
   const txt = input.value.trim();
   if (!txt || !dataChannel || dataChannel.readyState !== 'open') return;
 
+  // 先通过 DataChannel 发给对方
   dataChannel.send(txt);
-  appendMessage(txt, true);
+  appendMessage('我: ' + txt, true);
   input.value = '';
+
+  // 通过信令服务器存储消息（调用后端 messageStore 缓存）
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({
+      type: 'message',
+      roomId,
+      payload: { from: '我', content: txt }
+    }));
+  }
 }
 
 function appendMessage(txt, isMe) {
   const box = document.getElementById('messages');
   const div = document.createElement('div');
-  div.textContent = (isMe ? '我: ' : '对方: ') + txt;
+  div.textContent = txt;
+  div.style.textAlign = isMe ? 'right' : 'left';
+  div.style.padding = '4px 8px';
+  div.style.margin = '2px 0';
+  div.style.borderRadius = '4px';
+  div.style.backgroundColor = isMe ? '#daf1da' : '#f1f0f0';
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 }
@@ -401,6 +430,7 @@ async function getLocalStream() {
   }
 }
 </script>
+
 
 </body>
 </html>  
