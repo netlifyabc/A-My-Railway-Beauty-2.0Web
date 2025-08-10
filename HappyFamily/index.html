@@ -299,18 +299,16 @@ html, body {
 <nav>
 
 </nav>
+
 <script>
-
-let socket, pc, dataChannel, roomId, localStream;
+let socket, pc, roomId, myName, localStream, peerName = '';
 let isInitiator = false;
-let currentStatus = 'disconnected'; // disconnected | connected | calling
+let currentStatus = 'disconnected';
 
-// 绑定按钮事件
 document.getElementById('joinBtn').onclick = joinRoom;
 document.getElementById('sendBtn').onclick = sendMessage;
 document.getElementById('callBtn').onclick = startCall;
 
-// 状态更新显示
 function updateStatus(status) {
   currentStatus = status;
   const el = document.getElementById('statusIndicator');
@@ -328,151 +326,104 @@ function updateStatus(status) {
   }
 }
 
-// 加入房间，连接信令服务器
 function joinRoom() {
   roomId = document.getElementById('roomInput').value.trim();
-  if (!roomId) return alert("请输入房间号");
+  myName = document.getElementById('nameInput').value.trim();
+  if (!roomId || !myName) return alert("请输入房间号和昵称");
 
   document.getElementById('roomEntry').style.display = 'none';
   document.getElementById('chatContainer').style.display = 'flex';
 
+  // ✅ 修改为你的 WebSocket 地址
   socket = new WebSocket('wss://c403e1bb-f98e-4527-b903-4d0f06a5d3bf-00-3sr8p3uo0fmuc.kirk.replit.dev/');
 
   socket.onopen = () => {
-    console.log("✅ 已连接信令服务器");
-    socket.send(JSON.stringify({ type: 'join', roomId }));
+    console.log("✅ 已连接 WebSocket 信令服务器");
+    socket.send(JSON.stringify({ type: 'join', roomId, name: myName }));
+    updateStatus('connected');
   };
 
   socket.onmessage = async (event) => {
     const msg = JSON.parse(event.data);
-    console.log('收到信令消息:', msg);
+    console.log("📨 收到消息", msg);
 
-    if (msg.type === 'joined') {
-      isInitiator = msg.initiator || false;
-      createPeerConnection();
-    }
+    switch (msg.type) {
+      case 'joined':
+        isInitiator = msg.initiator;
+        appendMessage(`系统: 已加入房间 ${roomId}`, true);
+        createPeer();
+        break;
 
-    if (msg.type === 'peer-joined') {
-      // 远端新用户加入，自己作为发起者创建连接
-      isInitiator = true;
-      createPeerConnection();
-    }
+      case 'peer-joined':
+        peerName = msg.name || '对方';
+        appendMessage(`系统: ${peerName} 加入了房间`, false);
+        isInitiator = true;
+        createPeer();
+        break;
 
-    if (msg.type === 'signal') {
-      await handleSignal(msg.payload);
-    }
+      case 'message':
+        const content = msg.payload?.content || '';
+        const from = msg.payload?.from || '匿名';
+        appendMessage(`${from}: ${content}`, from === myName);
+        break;
 
-    if (msg.type === 'message') {
-      // 服务器转发的消息（也可以用DataChannel收发，这里是兼容）
-      appendMessage(`${msg.payload.from}: ${msg.payload.content}`, false);
+      case 'signal':
+        await handleSignal(msg.payload);
+        break;
+
+      case 'peer-left':
+        appendMessage(`系统: 对方已离开`, false);
+        updateStatus('connected');
+        break;
+
+      case 'error':
+        console.warn("⚠️ 错误", msg.message);
+        break;
     }
   };
 
-  socket.onerror = (err) => console.error("WebSocket 错误：", err);
   socket.onclose = () => {
-    console.warn("WebSocket 已关闭");
+    console.log("WebSocket 已关闭");
     updateStatus('disconnected');
   };
 }
 
-// 创建 RTCPeerConnection 和 DataChannel
-function createPeerConnection() {
-  if (pc) return; // 已经创建则不重复创建
+function createPeer() {
+  if (pc) return;
 
   pc = new RTCPeerConnection({
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
   });
 
-  // 监听 ICE 候选
-  pc.onicecandidate = e => {
-    if (e.candidate) {
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
       socket.send(JSON.stringify({
         type: 'signal',
         roomId,
-        payload: { candidate: e.candidate }
+        payload: { candidate: event.candidate }
       }));
     }
   };
 
-  // 监听远端媒体流
-  pc.ontrack = e => {
-    const remoteAudio = document.getElementById('remoteAudio');
-    if (remoteAudio.srcObject !== e.streams[0]) {
-      remoteAudio.srcObject = e.streams[0];
-      console.log("✅ 收到远程音频流");
-    }
+  pc.ontrack = (event) => {
+    const remoteAudio = new Audio();
+    remoteAudio.srcObject = event.streams[0];
+    remoteAudio.autoplay = true;
     updateStatus('calling');
   };
 
-  // 监听远端 DataChannel
-  pc.ondatachannel = e => {
-    dataChannel = e.channel;
-    setupDataChannel();
-  };
-
-  // 连接状态变化
   pc.onconnectionstatechange = () => {
-    console.log("连接状态:", pc.connectionState);
-    if (pc.connectionState === 'connected') {
-      updateStatus(localStream ? 'calling' : 'connected');
-    } else if (['disconnected', 'failed', 'closed'].includes(pc.connectionState)) {
-      updateStatus('disconnected');
-      cleanupConnection();
+    const state = pc.connectionState;
+    console.log("🔁 RTC 状态", state);
+
+    if (state === 'connected') {
+      updateStatus('calling');
+    } else if (['disconnected', 'failed', 'closed'].includes(state)) {
+      updateStatus('connected');
     }
   };
-
-  // 作为发起方，创建 DataChannel
-  if (isInitiator) {
-    dataChannel = pc.createDataChannel('chat');
-    setupDataChannel();
-  }
 }
 
-// 配置 DataChannel 回调
-function setupDataChannel() {
-  dataChannel.onopen = () => {
-    console.log("✅ DataChannel 已打开");
-    if (currentStatus !== 'calling') updateStatus('connected');
-  };
-
-  dataChannel.onclose = () => {
-    console.log("❌ DataChannel 已关闭");
-    updateStatus('disconnected');
-  };
-
-  dataChannel.onmessage = e => {
-    appendMessage('对方: ' + e.data, false);
-  };
-}
-
-// 发送文字消息
-function sendMessage() {
-  const input = document.getElementById('msgInput');
-  const txt = input.value.trim();
-  if (!txt) return alert('请输入消息');
-  if (!dataChannel || dataChannel.readyState !== 'open') {
-    return alert('聊天通道未连接');
-  }
-  dataChannel.send(txt);
-  appendMessage('我: ' + txt, true);
-  input.value = '';
-}
-
-// 把消息显示在聊天框
-function appendMessage(text, isMe) {
-  const box = document.getElementById('messages');
-  const div = document.createElement('div');
-  div.textContent = text;
-  div.style.textAlign = isMe ? 'right' : 'left';
-  div.style.padding = '4px 8px';
-  div.style.margin = '2px 0';
-  div.style.backgroundColor = isMe ? '#DCF8C6' : '#EEE';
-  div.style.borderRadius = '4px';
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
-}
-
-// 处理收到的信令消息
 async function handleSignal(data) {
   if (data.sdp) {
     await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -480,26 +431,23 @@ async function handleSignal(data) {
     if (data.sdp.type === 'offer') {
       await getLocalStream();
       localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-
-      socket.send(JSON.stringify({
-        type: 'signal',
-        roomId,
-        payload: { sdp: answer }
-      }));
+      socket.send(JSON.stringify({ type: 'signal', roomId, payload: { sdp: answer } }));
     }
   } else if (data.candidate) {
     try {
       await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
     } catch (e) {
-      console.warn('添加 ICE 失败', e);
+      console.warn("添加 ICE 失败", e);
     }
   }
 }
 
-// 开始语音通话（发起offer）
 async function startCall() {
+  if (!pc) return alert("请先加入房间");
+
   try {
     await getLocalStream();
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
@@ -513,54 +461,49 @@ async function startCall() {
       payload: { sdp: offer }
     }));
 
-    console.log("🎤 发起语音通话");
     updateStatus('calling');
-  } catch (err) {
-    alert("语音通话失败: " + err.message);
+  } catch (e) {
+    alert("启动通话失败：" + e.message);
   }
 }
 
-// 获取麦克风音频流
 async function getLocalStream() {
   if (!localStream) {
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        }
-      });
-      console.log("🎙️ 获取麦克风成功");
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    console.log("🎙️ 本地音频获取成功");
+  }
+}
 
-      // 播放本地音频（可选）
-      const localAudio = document.getElementById('localAudio');
-      if (localAudio) {
-        localAudio.srcObject = localStream;
-        localAudio.muted = true;
-        localAudio.play();
-      }
-    } catch (err) {
-      alert("无法访问麦克风: " + err.message);
-      throw err;
+function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text || socket.readyState !== WebSocket.OPEN) return;
+
+  socket.send(JSON.stringify({
+    type: 'message',
+    roomId,
+    payload: {
+      from: myName,
+      content: text
     }
-  }
+  }));
+
+  appendMessage(`${myName}: ${text}`, true);
+  input.value = '';
 }
 
-// 断开连接时清理
-function cleanupConnection() {
-  if (pc) {
-    pc.close();
-    pc = null;
-  }
-  dataChannel = null;
-  localStream = null;
-  updateStatus('disconnected');
+function appendMessage(text, isMe) {
+  const messages = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.textContent = text;
+  div.style.background = isMe ? '#D5F1FF' : '#EEE';
+  div.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
+  div.style.padding = '6px 10px';
+  div.style.margin = '4px';
+  div.style.borderRadius = '8px';
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
 }
-
 </script>
-
 </body>
-
-
 </html>  
