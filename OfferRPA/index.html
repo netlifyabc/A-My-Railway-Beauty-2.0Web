@@ -289,6 +289,82 @@ button.primary:hover {
   box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
 }
 
+.loading {
+  margin-top: 24px;
+  font-style: italic;
+  color: var(--text-subtle);
+  font-size: 15px;
+  animation: fadeIn 0.5s ease;
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 36px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+  animation: fadeInUp 0.5s ease;
+}
+
+th, td {
+  padding: 18px 22px;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 15px;
+}
+
+th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 13px;
+}
+
+td {
+  color: #1f2937;
+}
+
+tr:hover {
+  background-color: var(--hover);
+  transition: background 0.2s ease;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+}
 
 
   </style>
@@ -343,7 +419,6 @@ button.primary:hover {
     <button class="primary" id="scheduleInterview">发送面试通知</button>
     <div id="interviewStatus" style="margin-top:12px;"></div>
   </section>
-
 
 
 
