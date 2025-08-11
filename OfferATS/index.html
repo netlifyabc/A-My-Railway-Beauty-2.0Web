@@ -306,15 +306,19 @@ button.primary:hover {
 
   <main> 
     <!-- 模块 ① 邮箱验证 -->
-  <section id="candidate-profile" class="module active">
+  <section id="candidate-profile" class="module active"> 
   <h1>📧 邮箱验证</h1>
 
   <label for="candidateEmail">候选人邮箱（必填）</label>
   <input type="email" id="candidateEmail" placeholder="输入候选人邮箱" required />
 
+
+      <input type="email" id="partnerEmail" name="email" placeholder="请输入您的邮箱" required aria-required="true" />
+      <button type="submit">立即行动</button> 
+
   <button class="primary" id="sendVerification">发送验证邮件</button>
   <div id="verificationStatus" style="margin-top:12px;"></div>
-</section>
+</section> 
 
 
     <!-- 模块 ② 资料录入 -->
@@ -326,7 +330,7 @@ button.primary:hover {
       <input type="text" id="jobTitle" placeholder="后端开发工程师" />
       <label for="resume">简历或备注</label>
       <textarea id="resume" rows="5" placeholder="简历内容..."></textarea>
-      <button onclick="submitToZapier()">提交到 Notion</button>
+      <button onclick="submitToZapier()">提交到Database</button>
       <div id="status"></div>
     </section>
 
@@ -432,45 +436,61 @@ button.primary:hover {
   </main>
 </body>
 
-
   <script>  
 
+  let isSubmitting = false;
 
- document.getElementById("sendVerification").addEventListener("click", async () => {
-    const email = document.getElementById("candidateEmail").value.trim();
-    const status = document.getElementById("verificationStatus");
+document.getElementById("sendVerification").addEventListener("click", async () => {
+  const email = document.getElementById("candidateEmail").value.trim();
+  const status = document.getElementById("verificationStatus");
 
-    if (!email || !email.includes("@")) {
-      status.textContent = "❌ 请输入有效的邮箱地址";
+  // 更严谨邮箱验证正则
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailPattern.test(email)) {
+    status.textContent = "❌ 请输入有效的邮箱地址";
+    status.style.color = "red";
+    return;
+  }
+
+  if (isSubmitting) return;
+
+  isSubmitting = true;
+  status.textContent = "⏳ 正在发送验证邮件...";
+  status.style.color = "#333";
+
+  try {
+    const res = await fetch("https://my-netlify-hof.netlify.app/.netlify/functions/send-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+      mode: "cors"
+    });
+
+    const result = await res.json();
+
+    if (res.ok) {
+      status.textContent = "✅ 验证邮件已发送，请查收";
+      status.style.color = "green";
+
+      // 可选：清空输入框
+      document.getElementById("candidateEmail").value = "";
+
+      // 3秒后清除提示
+      setTimeout(() => {
+        status.textContent = "";
+      }, 3000);
+    } else {
+      status.textContent = "❌ 发送失败：" + (result.error || "未知错误");
       status.style.color = "red";
-      return;
     }
-
-    status.textContent = "⏳ 正在发送验证邮件...";
-    status.style.color = "black";
-
-    try {
-      // 🚧 替换为你自己的后端接口
-      const res = await fetch("https://my-netlify-hof.netlify.app/.netlify/functions/send-verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
-      });
-
-      const result = await res.json();
-
-      if (res.ok) {
-        status.textContent = "✅ 验证邮件已发送，请查收";
-        status.style.color = "green";
-      } else {
-        status.textContent = "❌ 发送失败：" + (result.error || "未知错误");
-        status.style.color = "red";
-      }
-    } catch (err) {
-      status.textContent = "❌ 网络异常，请稍后再试";
-      status.style.color = "red";
-    }
-  });
+  } catch (err) {
+    console.error("邮箱验证异常:", err);
+    status.textContent = "❌ 网络异常，请稍后再试";
+    status.style.color = "red";
+  } finally {
+    isSubmitting = false;
+  }
+});
 
 
 
@@ -504,7 +524,7 @@ button.primary:hover {
         const result = await res.json();
 
         if (res.ok) {
-          status.textContent = '✅ 成功调用 Zapier，检查 Notion 数据库';
+          status.textContent = '✅ 成功录入Database';
           status.style.color = 'green';
         } else {
           status.textContent = '❌ 错误：' + (result.error || '未知错误');
@@ -529,6 +549,7 @@ button.primary:hover {
       loading.style.display = 'block';
       table.style.display = 'none';
       tbody.innerHTML = '';
+
 
       try {
         const res = await fetch('https://my-netlify-hof.netlify.app/.netlify/functions/notion-query-all');
@@ -556,7 +577,6 @@ button.primary:hover {
         loading.innerText = '加载失败：' + err.message;
       }
     }
-
 
 
 
@@ -631,7 +651,6 @@ button.primary:hover {
       }
     });
   });
-
 
 
 
