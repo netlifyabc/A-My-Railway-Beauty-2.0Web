@@ -294,6 +294,8 @@ button.primary:hover {
   </style>
 </head>
 <body> 
+
+
 <nav> 
   <h2>招聘自动化系统</h2>
 
@@ -339,10 +341,15 @@ button.primary:hover {
     <div id="interviewStatus" style="margin-top:12px;"></div>
   </section>
 
+
+
+
   <!-- 模块 ④ 交流空间 -->
   <section id="ai-screening" class="module">
     <h1>🗃️ 人才交流空间</h1>
-    <p>上传简历后系统将自动识别候选人信息，推荐适配岗位，并纳入人才资料库。</p>
+    <p>快速连接潜在候选人，秒创交流空间，轻松联结人才，提升招聘效率。📈 
+
+</p>
 
     <!-- 房间输入界面 -->
     <div id="roomEntry" style="margin-top:20px;">
@@ -390,7 +397,21 @@ button.primary:hover {
       <input id="msgInput" placeholder="输入消息..." style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid #C3B7F0; font-size:14px;" />
       <button id="sendBtn" class="primary" style="margin-left:10px; flex-shrink:0;">发送</button>
     </div>
-  </section>
+
+
+<!-- 分享房间链接区域 -->
+<div id="shareLinkContainer" style="margin-top: 20px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #888;">
+  <label for="roomLinkInput" style="flex-shrink: 0;">分享房间链接：</label>
+  <input id="roomLinkInput" type="password" readonly
+         style="flex:1; padding: 6px; border-radius: 4px; border: 1px solid #eee; background: #f8f8f8; color: #aaa; font-size: 13px; user-select: all;" />
+  <button id="copyLinkBtn" style="background: none; border: 1px solid #ddd; color: #666; padding: 5px 8px; border-radius: 4px; font-size: 13px;">
+    复制链接
+  </button>
+</div>
+
+
+</section>
+
 
   <!-- 模块 ⑤ 候选资料库 -->
   <section id="candidate-database" class="module">
@@ -403,7 +424,8 @@ button.primary:hover {
           <th>Email</th>
           <th>职位</th>
           <th>简历摘要</th>
-          <th>Notion 页面</th>
+          <th style="display:none;">Notion 页面</th>
+
         </tr>
       </thead>
       <tbody></tbody>
@@ -421,7 +443,6 @@ button.primary:hover {
   <script>  
 
  
-
 document.getElementById("sendVerification").addEventListener("click", async () => {
   const email = document.getElementById("partnerEmail").value.trim();
   const formMessage = document.getElementById("formMessage");
@@ -438,7 +459,7 @@ document.getElementById("sendVerification").addEventListener("click", async () =
   formMessage.style.color = "black";
 
   try {
-    const res = await fetch("https://abc.app/.netlify/functions/partner-connect", {
+    const res = await fetch("https://my-netlify-hof.app/.netlify/functions/partner-connect", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, name: "", userType: "candidate" }), // 如果需要可动态设置 name/userType
@@ -484,7 +505,7 @@ document.getElementById("sendVerification").addEventListener("click", async () =
       status.style.color = 'black';
 
       try {
-        const res = await fetch('https://abc.netlify.app/.netlify/functions/partner-connect', {
+        const res = await fetch('https://my-netlify-hof.netlify.app/.netlify/functions/partner-connect', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -526,7 +547,7 @@ document.getElementById("sendVerification").addEventListener("click", async () =
 
 
       try {
-        const res = await fetch('https://abc.netlify.app/.netlify/functions/notion-query-all');
+        const res = await fetch('https://my-netlify-hof.netlify.app/.netlify/functions/notion-query-all');
         const data = await res.json();
 
         if (!data.results || data.results.length === 0) {
@@ -540,7 +561,8 @@ document.getElementById("sendVerification").addEventListener("click", async () =
             <td>${item.email}</td>
             <td>${item.jobTitle}</td>
             <td>${item.resume}</td>
-            <td><a href="${item.notionUrl}" target="_blank">查看</a></td>
+            <td style="display:none;"><a href="${item.notionUrl}" target="_blank">查看</a></td>
+
           `;
           tbody.appendChild(tr);
         });
@@ -551,7 +573,6 @@ document.getElementById("sendVerification").addEventListener("click", async () =
         loading.innerText = '加载失败：' + err.message;
       }
     }
-
 
 
 
@@ -628,7 +649,8 @@ document.getElementById("sendVerification").addEventListener("click", async () =
 
 
 
-  // 获取DOM元素
+
+// 获取DOM元素
 const roomEntry = document.getElementById('roomEntry');
 const chatContainer = document.getElementById('chatContainer');
 const joinBtn = document.getElementById('joinBtn');
@@ -639,6 +661,11 @@ const msgInput = document.getElementById('msgInput');
 const sendBtn = document.getElementById('sendBtn');
 const statusIndicator = document.getElementById('statusIndicator');
 
+const shareLinkContainer = document.getElementById('shareLinkContainer');
+const roomLinkInput = document.getElementById('roomLinkInput');
+const toggleLinkBtn = document.getElementById('toggleLinkBtn');
+const copyLinkBtn = document.getElementById('copyLinkBtn');
+
 joinBtn.onclick = () => {
   const name = nameInput.value.trim();
   const room = roomInput.value.trim();
@@ -646,6 +673,7 @@ joinBtn.onclick = () => {
     alert('请输入名字和房间号');
     return;
   }
+
   // 隐藏加入房间界面，显示聊天界面
   roomEntry.style.display = 'none';
   chatContainer.style.display = 'flex';
@@ -655,17 +683,35 @@ joinBtn.onclick = () => {
 
   // 显示欢迎消息
   messages.innerHTML = `<div><strong>系统：</strong> 欢迎 <em>${name}</em> 进入房间 <em>${room}</em>！</div>`;
+
+  // 构造分享链接
+  const shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(room)}&name=${encodeURIComponent(name)}`;
+  roomLinkInput.value = shareUrl;
+
+  // 显示分享链接区域
+  shareLinkContainer.style.display = 'flex';
+
+  // 隐藏显示/隐藏链接按钮
+  toggleLinkBtn.style.display = 'none';
+
+  // 复制按钮逻辑
+  copyLinkBtn.onclick = () => {
+    roomLinkInput.select();
+    roomLinkInput.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    alert('房间链接已复制到剪贴板');
+  };
 };
 
+// 发送消息
 sendBtn.onclick = () => {
   const text = msgInput.value.trim();
   if (!text) return;
-  // 添加消息
   const name = nameInput.value.trim() || '我';
   const msgDiv = document.createElement('div');
   msgDiv.textContent = `${name}: ${text}`;
   messages.appendChild(msgDiv);
-  messages.scrollTop = messages.scrollHeight; // 自动滚到底部
+  messages.scrollTop = messages.scrollHeight;
   msgInput.value = '';
   msgInput.focus();
 };
@@ -675,12 +721,9 @@ msgInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendBtn.click();
 });
 
+
 </script>
 
-
 </body>
-
-
-
 
 </html> 
