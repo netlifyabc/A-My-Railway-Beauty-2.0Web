@@ -478,7 +478,7 @@ if (partnerForm) {
     isSubmitting = true;
 
     try {
-      const res = await fetch('https://my-netlify-hof.netlify.app/.netlify/functions/partner-connect', {
+      const res = await fetch('https://my-netlify-hof.netlify.app/.netlify/functions/send-verification-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -511,6 +511,7 @@ if (partnerForm) {
       isSubmitting = false;
     }
   });
+
 }
 
 
