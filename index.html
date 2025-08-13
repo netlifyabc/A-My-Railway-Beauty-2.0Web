@@ -92,6 +92,7 @@ h2 {
   position: fixed;
   top: 24px;
 
+  width: 150px;
   right: 100px;
   background: linear-gradient(135deg, #6a4fb6, #9c7de9);
   color: white;
@@ -110,7 +111,28 @@ h2 {
   background: linear-gradient(135deg, #5a3fa1, #8669d1);
   box-shadow: 0 6px 16px rgba(106, 79, 182, 0.4);
 
-} 
+}  
+
+/* PC端两个按钮垂直排列 */
+.top-button:first-of-type {
+  top: 50px; /* 第一个按钮顶端 */
+}
+
+.top-button.secondary-button {
+  top: 105px; /* 第二个按钮下移，避免重叠 */
+}
+
+
+/* 👇 第二个按钮风格可略有区分 */
+.secondary-button {
+  background: linear-gradient(135deg, #a6c1ee, #fbc2eb);
+  color: #2b2346;
+}
+
+.secondary-button:hover {
+  background: linear-gradient(135deg, #94b4e3, #f0a8d6);
+  color: #1f1a30;
+}
 
 .belief-button {
   display: inline-block;
@@ -151,9 +173,20 @@ h2 {
 
 /* ✅ 新增：适配手机端按钮位置 */
 @media (max-width: 768px) {
-  .top-button {
-    top: 100px;
-    right: 16px; 
+ 
+
+     .top-button:first-of-type {
+    top: 80px !important;
+    right: 16px !important;
+    padding: 9px 14px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    box-shadow: 0 3px 10px rgba(106, 79, 182, 0.25);
+  }
+
+  .top-button.secondary-button {
+    top: 130px !important;
+    right: 16px !important;
     padding: 9px 14px;
     font-size: 0.85rem;
     border-radius: 6px;
@@ -167,7 +200,9 @@ h2 {
 
 <a href="https://linkwina.com/OfferRPA/" class="top-button" target="_blank" rel="noopener noreferrer">招聘自动化系统</a>
 
-
+  <a href="https://linkwina.com/Systematic/" class="top-button secondary-button" target="_blank" rel="noopener noreferrer">
+    系统概念展示 
+  </a> 
   <section class="hero">
     <h1>
       LinkWina<sup style="font-size: 0.5em; top: -0.6em; position: relative;">®</sup> · 联结无价 
@@ -192,7 +227,6 @@ h2 {
 <audio id="belief-audio" src="public/MP3/I believe.mp3"></audio>
 
 
-
     <div class="signature">
       —— LinkWina 创始人 Janney <br />
       <span>2025.8.9 品牌愿景</span>
@@ -211,12 +245,8 @@ h2 {
   });
 </script>
 
-
-
 </body>
 
 
 
-
-
-</html>  
+</html>   
