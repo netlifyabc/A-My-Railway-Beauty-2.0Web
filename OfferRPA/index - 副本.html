@@ -289,11 +289,89 @@ button.primary:hover {
   box-shadow: 0 3px 8px rgba(89, 58, 165, 0.6);
 }
 
+.loading {
+  margin-top: 24px;
+  font-style: italic;
+  color: var(--text-subtle);
+  font-size: 15px;
+  animation: fadeIn 0.5s ease;
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 36px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+  animation: fadeInUp 0.5s ease;
+}
+
+th, td {
+  padding: 18px 22px;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 15px;
+}
+
+th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 13px;
+}
+
+td {
+  color: #1f2937;
+}
+
+tr:hover {
+  background-color: var(--hover);
+  transition: background 0.2s ease;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+}
 
 
   </style>
 </head>
 <body> 
+
+
 <nav> 
   <h2>招聘自动化系统</h2>
 
@@ -306,14 +384,17 @@ button.primary:hover {
 
 <main>
 
-  <!-- 模块 ① 邮箱验证 -->
-  <section id="candidate-profile" class="module active">
-    <h1>📧 邮箱验证</h1>
+<!-- 模块 ① 邮箱验证 -->
+<section id="candidate-profile" class="module active">
+  <h1>📧 邮箱验证</h1>
+  <form id="partnerForm">
     <label for="partnerEmail">候选人邮箱（必填）</label>
-    <input type="email" id="partnerEmail" name="email" placeholder="请输入邮箱" required />
-    <button id="sendVerification">验证邮箱</button>
+   <input type="email" id="partnerEmail" name="email" placeholder="请输入邮箱" />
+    <button type="submit" id="sendVerification">验证邮箱</button>
     <div id="formMessage" style="margin-top:12px; font-weight:500;"></div>
-  </section>
+  </form>
+</section>
+
 
   <!-- 模块 ② 资料录入 -->
   <section id="job-management" class="module">
@@ -339,10 +420,14 @@ button.primary:hover {
     <div id="interviewStatus" style="margin-top:12px;"></div>
   </section>
 
+
+
   <!-- 模块 ④ 交流空间 -->
   <section id="ai-screening" class="module">
     <h1>🗃️ 人才交流空间</h1>
-    <p>上传简历后系统将自动识别候选人信息，推荐适配岗位，并纳入人才资料库。</p>
+    <p>快速连接潜在候选人，秒创交流空间，轻松联结人才，提升招聘效率。📈 
+
+</p>
 
     <!-- 房间输入界面 -->
     <div id="roomEntry" style="margin-top:20px;">
@@ -390,7 +475,21 @@ button.primary:hover {
       <input id="msgInput" placeholder="输入消息..." style="flex:1; padding:8px 12px; border-radius:6px; border:1px solid #C3B7F0; font-size:14px;" />
       <button id="sendBtn" class="primary" style="margin-left:10px; flex-shrink:0;">发送</button>
     </div>
-  </section>
+
+
+<!-- 分享房间链接区域 -->
+<div id="shareLinkContainer" style="margin-top: 20px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #888;">
+  <label for="roomLinkInput" style="flex-shrink: 0;">分享房间链接：</label>
+  <input id="roomLinkInput" type="password" readonly
+         style="flex:1; padding: 6px; border-radius: 4px; border: 1px solid #eee; background: #f8f8f8; color: #aaa; font-size: 13px; user-select: all;" />
+  <button id="copyLinkBtn" style="background: none; border: 1px solid #ddd; color: #666; padding: 5px 8px; border-radius: 4px; font-size: 13px;">
+    复制链接
+  </button>
+</div>
+
+
+</section>
+
 
   <!-- 模块 ⑤ 候选资料库 -->
   <section id="candidate-database" class="module">
@@ -421,52 +520,74 @@ button.primary:hover {
 
   <script>  
 
- 
+const partnerForm = document.getElementById('partnerForm');
+const partnerEmail = document.getElementById('partnerEmail');
+const partnerName = document.getElementById('partnerName');
+const userTypeSelect = document.getElementById('userType');  // 允许为 null
+const formMessage = document.getElementById('formMessage');
 
-document.getElementById("sendVerification").addEventListener("click", async () => {
-  const email = document.getElementById("partnerEmail").value.trim();
-  const formMessage = document.getElementById("formMessage");
+if (partnerForm) {
+  let isSubmitting = false;
 
-  // 更严谨邮箱正则
-  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email || !emailPattern.test(email)) {
-    formMessage.textContent = "❌ 请输入有效的邮箱地址";
-    formMessage.style.color = "red";
-    return;
-  }
+  partnerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
 
-  formMessage.textContent = "⏳ 正在发送验证邮件...";
-  formMessage.style.color = "black";
+    // 清除提示
+    formMessage.textContent = '';
+    formMessage.classList.remove('error');
 
-  try {
-    const res = await fetch("https://my-netlify-hof.app/.netlify/functions/partner-connect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, name: "", userType: "candidate" }), // 如果需要可动态设置 name/userType
-      mode: "cors"
-    });
+    const email = partnerEmail.value.trim();
+    const name = partnerName ? partnerName.value.trim() : '';
+    const userType = userTypeSelect ? userTypeSelect.value.trim() : '';  // ✅ userType 可选
 
-    const data = await res.json();
-
-    if (res.ok) {
-      formMessage.textContent = "✅ 验证邮件已发送，请查收";
-      formMessage.style.color = "green";
-
-      // 可选：3秒后清空提示
-      setTimeout(() => {
-        formMessage.textContent = "";
-      }, 3000);
-    } else {
-      formMessage.textContent = "❌ 发送失败：" + (data.error || "未知错误");
-      formMessage.style.color = "red";
+    // 验证邮箱格式
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailPattern.test(email)) {
+      formMessage.textContent = '❌ 请输入有效的邮箱地址'; 
+      formMessage.style.color = 'red'; 
+      formMessage.classList.add('error');
+      return;
     }
 
-  } catch (err) {
-    formMessage.textContent = "❌ 网络错误，请稍后重试";
-    formMessage.style.color = "red";
-    console.error("[邮箱验证错误]", err);
-  }
-});
+    isSubmitting = true;
+
+    try {
+      const res = await fetch('https://my-netlify-hof.netlify.app/.netlify/functions/send-verification-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, name, userType }), // ✅ userType 可为空
+        mode: 'cors',
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        formMessage.textContent = '✅ 提交成功！请查收验证邮件，我们会尽快联系您。';
+        partnerForm.reset();
+
+        setTimeout(() => {
+          formMessage.textContent = '';
+          formMessage.classList.remove('error');
+        }, 3000);
+      } else {
+        formMessage.textContent = data.error || '提交失败，请稍后再试。';
+        formMessage.classList.add('error');
+      }
+
+    } catch (err) {
+      formMessage.textContent = '网络错误，请检查连接后重试。';
+      formMessage.classList.add('error');
+      console.error('[partner-form] error:', err);
+
+    } finally {
+      isSubmitting = false;
+    }
+  });
+
+}
 
 
  async function submitToZapier() {
@@ -556,7 +677,6 @@ document.getElementById("sendVerification").addEventListener("click", async () =
 
 
 
-
      // ✅ 模块切换逻辑
   document.addEventListener('DOMContentLoaded', () => {
     const buttons = document.querySelectorAll('nav button[data-target]');
@@ -630,7 +750,8 @@ document.getElementById("sendVerification").addEventListener("click", async () =
 
 
 
-  // 获取DOM元素
+
+// 获取DOM元素
 const roomEntry = document.getElementById('roomEntry');
 const chatContainer = document.getElementById('chatContainer');
 const joinBtn = document.getElementById('joinBtn');
@@ -641,6 +762,11 @@ const msgInput = document.getElementById('msgInput');
 const sendBtn = document.getElementById('sendBtn');
 const statusIndicator = document.getElementById('statusIndicator');
 
+const shareLinkContainer = document.getElementById('shareLinkContainer');
+const roomLinkInput = document.getElementById('roomLinkInput');
+const toggleLinkBtn = document.getElementById('toggleLinkBtn');
+const copyLinkBtn = document.getElementById('copyLinkBtn');
+
 joinBtn.onclick = () => {
   const name = nameInput.value.trim();
   const room = roomInput.value.trim();
@@ -648,6 +774,7 @@ joinBtn.onclick = () => {
     alert('请输入名字和房间号');
     return;
   }
+
   // 隐藏加入房间界面，显示聊天界面
   roomEntry.style.display = 'none';
   chatContainer.style.display = 'flex';
@@ -657,17 +784,35 @@ joinBtn.onclick = () => {
 
   // 显示欢迎消息
   messages.innerHTML = `<div><strong>系统：</strong> 欢迎 <em>${name}</em> 进入房间 <em>${room}</em>！</div>`;
+
+  // 构造分享链接
+  const shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(room)}&name=${encodeURIComponent(name)}`;
+  roomLinkInput.value = shareUrl;
+
+  // 显示分享链接区域
+  shareLinkContainer.style.display = 'flex';
+
+  // 隐藏显示/隐藏链接按钮
+  toggleLinkBtn.style.display = 'none';
+
+  // 复制按钮逻辑
+  copyLinkBtn.onclick = () => {
+    roomLinkInput.select();
+    roomLinkInput.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+    alert('房间链接已复制到剪贴板');
+  };
 };
 
+// 发送消息
 sendBtn.onclick = () => {
   const text = msgInput.value.trim();
   if (!text) return;
-  // 添加消息
   const name = nameInput.value.trim() || '我';
   const msgDiv = document.createElement('div');
   msgDiv.textContent = `${name}: ${text}`;
   messages.appendChild(msgDiv);
-  messages.scrollTop = messages.scrollHeight; // 自动滚到底部
+  messages.scrollTop = messages.scrollHeight;
   msgInput.value = '';
   msgInput.focus();
 };
@@ -677,13 +822,10 @@ msgInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendBtn.click();
 });
 
+
 </script>
 
-
 </body>
-
-
-
 
 
 
