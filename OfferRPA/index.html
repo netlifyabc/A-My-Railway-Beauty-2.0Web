@@ -5,8 +5,8 @@
   <title>招聘自动化系统管理面板</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-/* 基础样式 */
-body {
+    /* 基础样式 */
+     body {
   margin: 0;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background: #f5f7fa;
@@ -23,73 +23,65 @@ nav {
   display: flex;
   flex-direction: column;
   padding-top: 20px;
+  /* 去掉高度限制 */
+  /* height: 100vh; */
   min-height: 100vh; /* 保证导航栏至少撑满视口高度 */
   box-sizing: border-box;
   overflow-y: auto;  /* 允许内容滚动，避免内容溢出被裁剪 */
 }
 
-nav h2 {
-  margin: 0 0 20px 20px;
-  font-weight: 700;
-  font-size: 1.4rem;
-}
+    nav h2 {
+      margin: 0 0 20px 20px;
+      font-weight: 700;
+      font-size: 1.4rem;
+    }
 
-/* 内容区域 */
-main {
-  flex-grow: 1;
-  padding: 30px;
-  overflow-y: auto;
-}
+    /* 内容区域 */
+    main {
+      flex-grow: 1;
+      padding: 30px;
+      overflow-y: auto;
+    }
+    main h1 {
+      margin-top: 0;
+      color: #004a9f;
+    }
+    section.module {
+      display: none;
+    }
+    section.module.active {
+      display: block;
+    }
+    /* 公共表单样式 */
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 600;
+    }
+    input, select, textarea, button {
+      margin-top: 6px;
+      padding: 8px 12px;
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
 
-main h1 {
-  margin-top: 0;
-  color: #004a9f;
-}
 
-section.module {
-  display: none;
-}
+    /* 日志区域 */
 
-section.module.active {
-  display: block;
-}
-
-/* 公共表单样式 */
-label {
-  display: block;
-  margin-top: 15px;
-  font-weight: 600;
-}
-
-input, select, textarea, button {
-  margin-top: 6px;
-  padding: 8px 12px;
-  width: 100%;
-  box-sizing: border-box;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-}
-/* 日志区域 */
-
-#log {
-  margin-top: 20px;
+    #log {
+  margin-top: 40px;
   background: #eaeef6;
   border-radius: 6px;
-  padding: 8px 15px;
-  max-height: 300px;
-  overflow-y: auto;
+  padding: 10px 15px 5px 15px; /* 上下内边距调整，上面稍小，下面更小 */
+  max-height: 180px;
+  overflow-y: hidden;  /* 关闭滚动条 */
   font-size: 0.9rem;
   color: #555;
   white-space: pre-wrap;
-  line-height: 1.2;
-  word-break: break-word;
-}
-
-#log, #log ul, #log li {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  line-height: 1.4;     /* 可以调整行高，文字更紧凑 */
 }
 
 
@@ -208,6 +200,9 @@ button.primary:hover {
   border-color: #a3b8ff;
 }
 
+
+
+
 .chat-container {
   display: flex;
   flex-direction: column;
@@ -234,6 +229,7 @@ button.primary:hover {
   gap: 4px;  /* 上下行间距 */
   font-size: 15px;
 }
+
 
 /* 消息区自动撑满剩余高度，且支持滚动 */
 .chat-messages {
@@ -367,184 +363,44 @@ a:hover {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.module h2 {
-  font-weight: 500;
-  font-size: 1.4rem;
-  color: #444444;
-  margin-bottom: 24px;  /* 增大标题底部间距 */
-  letter-spacing: 0.03em;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  line-height: 1.3;
-} 
-
-.module {
-  padding-left: 24px;   /* 和其他模块统一内边距 */
-  padding-right: 24px;
-}
-
-
-
-/* 假设按钮都有 .module button 类，给按钮顶部加点空间 */
-.module button {
-  margin-top: 16px;
-  padding: 10px 20px;
-  cursor: pointer;
-  border-radius: 6px;
-  border: none;
-  background-color: #0078d4;
-  color: white;
-  font-weight: 500;
-  transition: background-color 0.3s ease;
-}
-
-.module button:hover {
-  background-color: #005ea2;
-}
-
-.tool-entry-row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding: 8px 0;
-}
-
-.tool-entry {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 80px;
-  text-decoration: none;
-  color: #333;
-  font-size: 12px;
-  transition: transform 0.2s ease;
-}
-
-.tool-entry img {
-  width: 32px;
-  height: 32px;
-  margin-bottom: 4px;
-}
-
-.tool-entry:hover {
-  transform: scale(1.1);
-  color: #0078d4;
-}
-
-/* 父容器排版 */
-#multi-channel-entry {
-  padding: 16px 24px;
-}
-
-.channel-entry-row,
-.tool-entry-row {
-  display: flex;
-  gap: 20px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
-/* 统一样式 */
-.channel-entry, .tool-entry {
-  flex: 0 0 80px; /* 固定宽度 */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-decoration: none;
-  color: #333;
-  font-size: 12px;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.channel-entry img, .tool-entry img {
-  width: 32px;
-  height: 32px;
-  margin-bottom: 6px;
-}
-
-.channel-entry span, .tool-entry span {
-  user-select: none;
-}
-
-.channel-entry:hover, .tool-entry:hover {
-  transform: scale(1.1);
-  color: #0078d4;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  nav {
-    width: 60px;
-    padding-top: 10px;
-  }
-  nav h2 {
-    display: none;
-  }
-  nav button {
-    padding: 10px;
-    font-size: 0;
-  }
-  nav button::before {
-    content: attr(data-icon);
-    font-size: 20px;
-    display: block;
-    text-align: center;
-  }
-  main {
-    padding: 15px;
-  }
-  .tool-entry-row, .channel-entry-row {
-    gap: 12px;
-  }
-}
-
-/* 滚动条美化（Webkit内核） */
-.chat-messages::-webkit-scrollbar,
-nav::-webkit-scrollbar {
-  width: 8px;
-}
-
-.chat-messages::-webkit-scrollbar-thumb,
-nav::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-}
-
-.chat-messages::-webkit-scrollbar-track,
-nav::-webkit-scrollbar-track {
-  background-color: transparent;
   
 }
 
+@media (max-width: 768px) {
+  nav {
+    width: 100%;
+    flex-direction: row;
+    padding: 10px 0;
+    justify-content: space-around;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 999;
+    min-height: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
 
-#log {
-  /* 先隐藏全部实心圆点（常见的黑点符号） */
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-}
 
-#log::before,
-#log::after,
-#log *::before,
-#log *::after {
-  content: none !important;
-}
+  nav button {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 0.85rem;
+    text-align: center;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    background: transparent;
+  }
 
-#log * {
-  /* 用伪元素覆盖可能的黑点符号 */
-  position: relative;
-}
+  nav button.active {
+    border-bottom: 3px solid #ffcc00;
+    background-color: #005ea2;
+  }
 
-#log *::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 0;
-  height: 0;
-  overflow: hidden;
+  main {
+    padding-top: 80px; /* 避免导航栏遮挡内容 */
+  }
 }
 
 
@@ -561,9 +417,6 @@ nav::-webkit-scrollbar-track {
   <button data-target="interview-schedule">面试通知</button>
   <button data-target="ai-screening">交流空间</button>
   <button data-target="candidate-database">候选资料库</button>
-
-  <button data-target="multi-channel-entry">渠道快捷入口</button> 
-
 </nav>
 
 <main>
@@ -692,86 +545,7 @@ nav::-webkit-scrollbar-track {
       </thead>
       <tbody></tbody>
     </table>
-  </section> 
-
-
-
-
-
-<section id="multi-channel-entry" class="module">
-  <h2 style="text-align: left; margin-bottom: 24px;">招聘联结入口</h2> 
-
-  <div class="channel-entry-row" style="margin-bottom: 24px; display: flex; justify-content: flex-start; gap: 16px;">
-    <a href="https://www.liepin.com/" target="_blank" class="channel-entry" title="猎聘网">
-      <img src="liepin-logo.png" alt="猎聘" />
-      <span>猎聘</span>
-    </a>
-    <a href="https://www.zhaopin.com/" target="_blank" class="channel-entry" title="智联招聘">
-      <img src="zhaopin-logo.png" alt="智联招聘" />
-      <span>智联</span>
-    </a>
-    <a href="https://www.51job.com/" target="_blank" class="channel-entry" title="前程无忧">
-      <img src="51job-logo.png" alt="前程无忧" />
-      <span>前程无忧</span>
-    </a>
-  </div>
-
-  <h2>社交通信入口</h2>
-
-  <!-- 第一排：通信社交入口 -->
-  <div class="channel-entry-row" style="margin-bottom: 24px;">
-    <a href="https://wx.qq.com" target="_blank" class="channel-entry" title="微信网页版">
-      <img src="wechat-logo.png" alt="微信" />
-      <span>微信</span>
-    </a>
-    <a href="https://im.qq.com" target="_blank" class="channel-entry" title="QQ">
-      <img src="qq-logo.png" alt="QQ" />
-      <span>QQ</span>
-    </a>
-    <a href="https://web.whatsapp.com" target="_blank" class="channel-entry" title="WhatsApp网页版">
-      <img src="whatsapp-logo.png" alt="WhatsApp" />
-      <span>WhatsApp</span>
-    </a>
-    <!-- 可以加更多通信入口 -->
-  </div>
-
-  <!-- 第二排：开发快捷入口 -->
-     <h2>开发快捷入口</h2> 
-  <div class="channel-entry-row" style="margin-bottom: 24px;"> 
-    <a href="https://github.com" target="_blank" class="tool-entry" title="GitHub">
-      <img src="github-icon.png" alt="GitHub" />
-      <span>GitHub</span>
-    </a>
-    <a href="https://www.netlify.com" target="_blank" class="tool-entry" title="Netlify">
-      <img src="netlify-icon.png" alt="Netlify" />
-      <span>Netlify</span>
-    </a>
-    <a href="https://railway.app" target="_blank" class="tool-entry" title="Railway">
-      <img src="railway-icon.png" alt="Railway" />
-      <span>Railway</span>
-    </a>
-    <a href="https://resend.com" target="_blank" class="tool-entry" title="Resend">
-      <img src="resend-icon.png" alt="Resend" />
-      <span>Resend</span>
-    </a>
-    <a href="https://www.notion.so" target="_blank" class="tool-entry" title="Notion">
-      <img src="notion-icon.png" alt="Notion" />
-      <span>Notion</span>
-    </a>
-    <a href="https://zapier.com" target="_blank" class="tool-entry" title="Zapier">
-      <img src="zapier-icon.png" alt="Zapier" />
-      <span>Zapier</span>
-    </a>
-    <a href="https://replit.com" target="_blank" class="tool-entry" title="Replit">
-      <img src="replit-icon.png" alt="Replit" />
-      <span>Replit</span>
-    </a>
-    <a href="https://websocketking.com" target="_blank" class="tool-entry" title="WebSocket King">
-      <img src="websocketking-icon.png" alt="WebSocket King" />
-      <span>WebSocket King</span>
-    </a>
-  </div>
-</section> 
+  </section>
 
   <!-- 日志面板 -->
   <div id="log" style="margin-top: 30px;">
@@ -782,8 +556,6 @@ nav::-webkit-scrollbar-track {
 </main>
 
   <script>  
-
-
 
 const partnerForm = document.getElementById('partnerForm');
 const partnerEmail = document.getElementById('partnerEmail');
@@ -942,52 +714,77 @@ if (partnerForm) {
 
 
 
-    document.addEventListener('DOMContentLoaded', () => {
-  const buttons = document.querySelectorAll('nav button[data-target]');
-  const modules = document.querySelectorAll('main section.module');
-  const allMainHeaders = document.querySelectorAll('main > h1');
-  const log = document.getElementById("logContent");
+     // ✅ 模块切换逻辑
+  document.addEventListener('DOMContentLoaded', () => {
+    const buttons = document.querySelectorAll('nav button[data-target]');
+    const modules = document.querySelectorAll('main section.module');
+    const allMainHeaders = document.querySelectorAll('main > h1');
 
-  function showModule(targetId, btn) {
-    // 激活按钮样式
-    buttons.forEach(b => {
-      b.classList.toggle('active', b.dataset.target === targetId);
-    });
+    function showModule(targetId) {
+      // 1. 激活按钮样式
+      buttons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.target === targetId);
+      });
 
-    // 显示对应模块，隐藏其他
-    modules.forEach(section => {
-      section.classList.toggle('active', section.id === targetId);
-    });
+      // 2. 显示对应 section.module，隐藏其他
+      modules.forEach(section => {
+        section.classList.toggle('active', section.id === targetId);
+      });
 
-    // 隐藏所有 main > h1
-    allMainHeaders.forEach(h => h.style.display = 'none');
+      // 3. 隐藏所有 main 下的 h1（这些是模块标题）
+      allMainHeaders.forEach(h => h.style.display = 'none');
 
-    // 显示目标模块内部标题（如果有）
-    const targetSection = document.getElementById(targetId);
-    if (!targetSection) return;
+      // 4. 显示当前模块内的标题（如果模块没有封装在 <section> 里就特殊处理）
+      const targetSection = document.getElementById(targetId);
+      if (!targetSection) return;
 
-    const h1sInside = targetSection.querySelectorAll('h1');
-    h1sInside.forEach(h => h.style.display = 'block');
-
-    // 记录日志（可选）
-    if (log && btn) {
-      const timestamp = new Date().toLocaleTimeString();
-      log.textContent = `[${timestamp}] 切换到模块：${btn.textContent}\n` + log.textContent;
+      // 若模块外部存在 h1（如邮箱验证/资料录入），也显示
+      const h1sInside = targetSection.querySelectorAll('h1');
+      h1sInside.forEach(h => h.style.display = 'block');
     }
-  }
 
-  // 默认激活第一个模块
-  if (buttons.length > 0) {
-    showModule(buttons[0].dataset.target, buttons[0]);
-  }
+    // 默认展示第一个模块（如果有）
+    if (buttons.length > 0) {
+      const firstTarget = buttons[0].dataset.target;
+      showModule(firstTarget);
+    }
 
-  // 按钮绑定事件
-  buttons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      showModule(btn.dataset.target, btn);
+    // 绑定按钮点击事件
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.dataset.target;
+        showModule(targetId);
+      });
     });
   });
-});
+
+    // 页面切换逻辑
+  document.querySelectorAll("nav button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const targetId = btn.dataset.target;
+
+      // 切换按钮样式
+      document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      // 切换模块显示
+      document.querySelectorAll("section.module").forEach(section => {
+        if (section.id === targetId) {
+          section.classList.add("active");
+        } else {
+          section.classList.remove("active");
+        }
+      });
+
+      // 可选：记录日志
+      const log = document.getElementById("logContent");
+      if (log) {
+        const timestamp = new Date().toLocaleTimeString();
+        log.textContent = `[${timestamp}] 切换到模块：${btn.textContent}\n` + log.textContent;
+      }
+    });
+  });
+
 
 
 
@@ -1060,7 +857,6 @@ sendBtn.onclick = () => {
 // 支持回车发送
 msgInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendBtn.click();
-
 });
 
 </script>
