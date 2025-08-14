@@ -4,46 +4,51 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>📨 LinkWina 内部发送</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f5f5f8;
-      --card-bg: #ffffff;
-      --text: #1a1a1a;
-      --accent: #6a4fb6;
-      --muted: #777;
-      --border-radius: 12px;
-      --shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+      --bg-gradient: linear-gradient(135deg, #d0eaff, #f1eaff);
+      --card-bg: rgba(255, 255, 255, 0.55);
+      --text: #333;
+      --accent: #7a5cf0;
+      --muted: #666;
+      --border-radius: 16px;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      --glass-blur: blur(20px);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: var(--bg);
-      font-family: "Helvetica Neue", "PingFang SC", "Noto Sans SC", sans-serif;
+      background: var(--bg-gradient);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: var(--text);
       height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      overflow: hidden;
       padding: 20px;
     }
 
     .form-card {
       background: var(--card-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
       border-radius: var(--border-radius);
       box-shadow: var(--shadow);
-      padding: 32px;
-      max-width: 520px;
+      padding: 40px;
+      max-width: 540px;
       width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.25);
     }
 
     h1 {
-      font-size: 1.8rem;
+      font-size: 1.9rem;
       color: var(--accent);
-      font-weight: 700;
-      margin-bottom: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
       text-align: center;
+      letter-spacing: 0.5px;
     }
 
     label {
@@ -55,17 +60,19 @@
 
     input, textarea {
       width: 100%;
-      padding: 12px;
+      padding: 14px;
       font-size: 1rem;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-bottom: 18px;
-      background-color: #fff;
-      transition: border-color 0.2s;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      margin-bottom: 20px;
+      background-color: rgba(255, 255, 255, 0.9);
+      color: #222;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     input:focus, textarea:focus {
       border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(122, 92, 240, 0.3);
       outline: none;
     }
 
@@ -76,21 +83,22 @@
 
     .submit-btn {
       width: 100%;
-      background: linear-gradient(135deg, #6a4fb6, #9c7de9);
+      background: linear-gradient(135deg, #7a5cf0, #a78afc);
       color: white;
       font-size: 1rem;
-      padding: 12px;
+      padding: 14px;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
       transition: all 0.25s ease;
       font-weight: 600;
-      box-shadow: 0 4px 12px rgba(106, 79, 182, 0.25);
+      box-shadow: 0 6px 16px rgba(122, 92, 240, 0.4);
     }
 
     .submit-btn:hover {
-      background: linear-gradient(135deg, #5a3fa1, #8669d1);
-      box-shadow: 0 6px 16px rgba(106, 79, 182, 0.35);
+      background: linear-gradient(135deg, #664ce0, #9474f8);
+      box-shadow: 0 8px 22px rgba(122, 92, 240, 0.5);
+      transform: translateY(-1px);
     }
 
     .status-message {
@@ -102,34 +110,33 @@
 
     @media (max-width: 600px) {
       .form-card {
-        padding: 24px;
+        padding: 28px;
       }
 
       h1 {
-        font-size: 1.5rem;
+        font-size: 1.6rem;
       }
 
       input, textarea {
         font-size: 0.95rem;
-        padding: 10px;
+        padding: 12px;
       }
 
       .submit-btn {
         font-size: 0.95rem;
-        padding: 10px;
+        padding: 12px;
       }
     }
   </style>
 </head>
 <body>
   <div class="form-card">
-    <h1>发送邮件 · 内部系统</h1>
+    <h1>📨 内部邮件发送</h1>
     <form id="emailForm">
-      <label>发件人邮箱</label>
-      <input type="email" name="from_email" required />
+      <input type="hidden" name="from_email" value="noreply@abc.com" />
 
-      <label>收件人邮箱 (同步抄送)</label>
-      <input type="email" name="to_email" required /> 
+      <label>收件人邮箱 (可留空)</label>
+      <input type="email" name="to_email" placeholder="例如：team@linkwina.com" />
 
       <label>主题</label>
       <input type="text" name="subject" required />
@@ -148,7 +155,7 @@
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      statusMsg.textContent = "正在发送，请稍候...";
+      statusMsg.textContent = "🚀 正在发送中...";
 
       const formData = Object.fromEntries(new FormData(form));
 
@@ -161,7 +168,7 @@
 
         const result = await res.json();
         if (res.ok) {
-          statusMsg.textContent = "✅ 邮件已发送并同步记录到 Notion！";
+          statusMsg.textContent = "✅ 已发送并同步记录到 Notion！";
           form.reset();
         } else {
           statusMsg.textContent = `❌ 发送失败：${result.error || "未知错误"}`;
