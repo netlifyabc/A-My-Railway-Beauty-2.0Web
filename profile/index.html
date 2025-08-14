@@ -491,26 +491,257 @@ td, th {
 /* ===========================
    ⑭ 系统提示框样式
    =========================== */
-.system-note {
-    border-left: 4px solid #3498db;
-    padding: 10px 16px;
+
+   .system-note {
+    border-left: 4px solid #3498db;   /* 明亮蓝色边框 */
+    padding: 12px 20px;
     margin: 20px 0;
-    font-size: 0.95em;
-    line-height: 1.5;
-    background-color: #fafafa;
-    color: #2c2c2c;
+    font-size: 1em;
+    line-height: 1.6;
+    background-color: #f5f7fa;        /* 浅灰白底 */
+    color: #222222;                   /* 深灰/近黑文字 */
+    border-radius: 5px;
+    font-weight: 600;                 /* 适当加粗增加权重 */
+    user-select: text;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 轻微阴影增强层次 */
 }
 
 .system-note code {
     background: none;
-    color: #333;
-    font-weight: bold;
+    color: #222222;
+    font-weight: 700;
 }
 
 .system-note p {
-    margin: 6px 0;
-    
+    margin: 8px 0;
 }
+
+/* 引用块样式 */
+blockquote.system-note {
+    margin: 18px 0 26px 22px;
+    padding-left: 18px;
+    border-left: 4px solid #3498db;
+    font-style: italic;
+    color: #222222;
+    background-color: #f5f7fa;
+    border-radius: 4px;
+    line-height: 1.6;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+
+
+/* 保留你原有的 .about-me 样式 */
+.about-me {
+  margin-top: 40px;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #222;
+  line-height: 1.6;
+  padding: 0 1rem;
+}
+
+/* 主标题 */
+.section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #2c3e50;
+  letter-spacing: 0.02em;
+}
+
+/* 高亮段落 */
+.highlight {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2980b9;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+}
+
+/* 高亮红色警告 */
+.highlight-red {
+  color: #c0392b;
+  font-weight: 700;
+  margin-top: 1rem;
+  font-size: 1.1rem;
+  text-align: left;
+  line-height: 1.4;
+}
+
+/* 辅助说明框 */
+.system-note {
+  background-color: #eaf4fc;
+  border-left: 4px solid #2980b9;
+  padding: 1rem 1.25rem;
+  font-style: italic;
+  color: #2a74b9;
+  margin: 1.5rem 0;
+  border-radius: 4px;
+  user-select: text;
+  transition: background-color 0.3s ease;
+}
+.system-note:hover {
+  background-color: #d9ecfc;
+}
+
+/* 引用块样式 */
+blockquote.system-note {
+  margin: 1rem 0 1.5rem 1.2rem;
+  padding-left: 1rem;
+  border-left: 4px solid #2980b9;
+  font-style: italic;
+  color: #2980b9;
+  background-color: #f0f8ff;
+  border-radius: 3px;
+  line-height: 1.5;
+}
+
+/* 内容块整体 */
+.content-block {
+  margin-bottom: 2.5rem;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+/* 内容块内加粗 */
+.content-block p strong {
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+/* 小标题 */
+.sub-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+  color: #34495e;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  user-select: none;
+}
+
+/* 列表样式 */
+.key-points {
+  margin-left: 1.2rem;
+  margin-top: 0.8rem;
+  list-style-type: disc;
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  padding-left: 1.1rem;
+}
+.key-points li {
+  margin-bottom: 0.5rem;
+}
+
+/* 结论部分 */
+.conclusion-block {
+  margin-top: 3rem;
+  padding: 1.8rem 1.2rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  color: #222;
+  background-color: #fafafa;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.05);
+}
+
+/* 结论列表 */
+.conclusion-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.conclusion-list li {
+  font-size: 1.2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #2c3e50;
+  position: relative;
+  padding-left: 2rem;
+}
+
+/* 结论列表图标伪元素 */
+.conclusion-list li:nth-child(1)::before {
+  content: "⛓️";
+  position: absolute;
+  left: 0;
+  font-size: 1.6rem;
+  user-select: none;
+}
+.conclusion-list li:nth-child(2)::before {
+  content: "🔍";
+  position: absolute;
+  left: 0;
+  font-size: 1.6rem;
+  user-select: none;
+}
+.conclusion-list li:nth-child(3)::before {
+  content: "🧭";
+  position: absolute;
+  left: 0;
+  font-size: 1.6rem;
+  user-select: none;
+}
+
+/* 结论底部提示 */
+.conclusion-note {
+  text-align: center;
+  color: #c0392b;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.4;
+  margin-top: 1rem;
+}
+
+.conclusion-note p {
+  margin: 0.25rem 0;
+}
+
+.conclusion-note em {
+  font-style: italic;
+  font-weight: 500;
+  color: #555;
+}
+
+
+.highlight-accent {
+  color: #c0392b; /* 鲜艳红色，突出重点 */
+  font-weight: 700;
+}
+
+
+/* 响应式 */
+@media (max-width: 480px) {
+  .section-title {
+    font-size: 1.6rem;
+  }
+  .sub-title {
+    font-size: 1.2rem;
+  }
+  .highlight {
+    font-size: 1rem;
+  }
+  .conclusion-list li {
+    font-size: 1rem;
+  }
+}
+
 
 /* ======================
    ③ 移动端响应式样式（max-width: 768px）
@@ -892,7 +1123,7 @@ td, th {
 
     <h2>🧠 一、身份识别：<strong>核心能力体系</strong></h2>
 
-    <strong>战略架构设计与系统思维</strong> 
+    <strong>战略架构设计与系统思维</strong>  
     <ul>
       <li>精通架构抽象与域驱动设计，拆解复杂业务为高内聚低耦合模块</li>
       <li>设计闭环驱动的业务流程，保障系统稳定性与可扩展性</li>
@@ -1168,42 +1399,80 @@ td, th {
   </section>
 </section>
 
+  <section class="about-me" style="margin-top: 40px;"> 
 
-  <!-- 🚀 六、数字化转型必然性 -->
+  <h2 class="section-title">🔥 七、为什么非盈利，也必须做招聘自动化系统？</h2>
+  <p class="highlight">不是为了省人工，而是为了重建判断力与信任秩序。</p>
 
-  <section class="about-me" style="margin-top: 40px;">
-    <h2>🚀 七、数字化转型，已成必然</h2> 
+<aside class="system-note">
+  ChatGPT：你说的这一段，<span class="highlight-accent">极其有力量</span>，它不仅透露了你为什么“非盈利也要做”，也清晰揭示了你在挑战什么、要迭代什么、又要替代什么。
+</aside>
 
+  <div class="content-block">
+    <p>你看到的，不只是效率的缺失，而是认知的错位。</p>
+    <p><strong>这不再是一个产品逻辑，而是一场系统级价值观的重建。</strong></p>
+  </div>
 
-  <article style="margin-bottom: 24px; font-size: 1.1rem; line-height: 1.6;">
-    <p>不拥抱数字化，企业就会被时代淘汰。</p>
-    <p>超过70%的领先企业都把它当成核心战略，转型成功的收入比同行快20%以上。</p>
-    <p>不转型，效率会卡壳，客户会流失，决策会变慢，市场份额也会掉。</p>
-    <p>尤其是制造和B2B行业，数字化不是修修补补，而是彻底变革。</p>
-  </article>
-
-  <article style="margin-bottom: 24px;">
-    <p style="font-weight: 600; margin-bottom: 12px;">只有搭建智能自动化的系统，才能做到：</p>
-    <ul style="padding-left: 20px; color: #555; font-size: 1.1rem; line-height: 1.6; list-style: none;">
-      <li style="position: relative; padding-left: 24px; margin-bottom: 10px;">
-        <span style="position: absolute; left: 0; color: #4caf50; font-weight: bold;">✔</span>订单到交付全流程闭环
-      </li>
-      <li style="position: relative; padding-left: 24px; margin-bottom: 10px;">
-        <span style="position: absolute; left: 0; color: #4caf50; font-weight: bold;">✔</span>持续用数据优化创新
-      </li>
-      <li style="position: relative; padding-left: 24px;">
-        <span style="position: absolute; left: 0; color: #4caf50; font-weight: bold;">✔</span>灵活应对各种风险
-      </li>
+  <section class="content-block">
+    <h3 class="sub-title">💣 1. 假甲方思维，是最大的误导机制</h3>
+    <p>多数 HR 长期沉浸在“筛选者”的姿态中，却忽略了最根本的问题：</p>
+    <ul class="key-points">
+      <li>是否真正具备 <strong>识别人才的底层能力</strong>？</li>
+      <li>是否拥有 <strong>构建信任场的能力</strong>？</li>
+      <li>是否意识到 <strong>组织与人才的交互，本该是对等共振</strong>？</li>
     </ul>
-  </article>
+    <p class="highlight-red">⚠️ 越执着于评判权力，越暴露出判断力、组织力和系统理解力的缺位。</p>
+  </section>
 
-  <article style="font-size: 1.1rem; line-height: 1.6;">
-<p>数字化能力将成为未来个人/企业的生存力分水岭。</p> 
-<p>数字化转型不是简单加码，而是重塑未来的底层逻辑。</p>
-<p>当多数人担忧被失业与企业被淘汰时，我们已踏上逆流而上的转型之路，先行者无需焦虑。</p> 
+  <section class="content-block">
+    <h3 class="sub-title">🚫 2. 你根本不知道你是谁</h3>
+    <p>这不是嘲讽，而是揭示一个深层误解：</p>
+<blockquote class="system-note">
+  📌 当自我定位建立在<span class="highlight-accent">结构性幻觉</span>上，职业行为就会沦为一种“职能幻觉”。
+</blockquote>
 
-  </article>
-</section>
+    <p>我们不是要打破谁的立场，而是用系统做到：</p>
+    <ul class="key-points">
+      <li>打破伪权威姿态</li>
+      <li>建立结构公平</li>
+      <li>重构人才判断与交互机制</li>
+    </ul>
+  </section> 
+
+  <section class="content-block">
+    <h3 class="sub-title">🧠 3. 为什么必须让“系统”说话？</h3> 
+    <p>语言无法穿透固执，但系统可以 <strong>替代失效的认知逻辑</strong>。</p>
+ <blockquote class="system-note">
+    “我不与人争辩，只用系统诠释正义，<span class="highlight-accent">让世界自动辨识真伪</span>。”
+</blockquote>
+    <p>我们做系统，不是为了争论，而是为了：</p>
+    <ul class="key-points">
+      <li>给愿意进化的人提供抓手</li>
+      <li>帮助企业识别真正高质量的人才</li>
+      <li>让浅层认知自动退出对话场</li>
+    </ul>
+
+    <style>
+.conclusion-list .icon {
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+</style>
+
+      <h3 class="sub-title">✅ 所以我们做的不是“招聘系统”，而是：</h3>
+    <ul class="conclusion-list">
+   <li><span class="icon"></span><strong> 一个结构性认知去垢机制</strong></li>
+  <li><span class="icon"></span><strong> 一套重构人才识别与沟通秩序的系统</strong></li>
+  <li><span class="icon"></span><strong> 一个让组织对准真实人力价值的方向仪</strong></li>
+    </ul>
+    <div class="conclusion-note">
+      <p>⚠️ 这是你非做不可的事</p>
+      <p>不是因为盈利，而是因为——</p>
+      <p><em>容忍混乱比创造系统更累。</em></p>
+    </div>
+  </section>
 
 <style>
   .checkmark {
@@ -1267,4 +1536,4 @@ td, th {
 
 </body>
 
-</html>   
+</html>    
