@@ -127,7 +127,8 @@
         padding: 12px;
       }
     }
-  </style>
+  </style> 
+  
 </head>
 <body>
   <div class="form-card">
@@ -136,8 +137,8 @@
     <form id="emailForm">
       <input type="hidden" name="from_email" value="noreply@abc.com" />
 
-      <label>收件人邮箱 (可留空)</label>
-      <input type="email" name="to_email" placeholder="例如：team@linkwina.com" />
+      <label>收件人邮箱 (留空会默认 同步至HR)</label>
+      <input type="email" name="to_email" placeholder="例如 HR@linkwina.com" />
 
       <label>主题</label>
       <input type="text" name="subject" required />
@@ -151,36 +152,41 @@
   </div>
 
   <script>
-    const form = document.getElementById("emailForm");
-    const statusMsg = document.getElementById("statusMsg");
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      statusMsg.textContent = "🚀 正在发送中...";
+  const form = document.getElementById("emailForm");
+  const statusMsg = document.getElementById("statusMsg");
 
-      const formData = Object.fromEntries(new FormData(form));
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    statusMsg.textContent = "🚀 正在发送中...";
 
-      try {
-        const res = await fetch("https://my-netlify-hof.netlify.app/.netlify/functions/send-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        });
+    const formData = Object.fromEntries(new FormData(form));
 
-        const result = await res.json();
-        if (res.ok) {
-          statusMsg.textContent = "✅ 已发送并同步记录到 Notion！";
-          form.reset();
-        } else {
-          statusMsg.textContent = `❌ 发送失败：${result.error || "未知错误"}`;
-        }
-      } catch (err) {
-        statusMsg.textContent = "❌ 网络错误，请稍后重试";
-        console.error(err);
+    // 👉 若收件人未填写，使用默认邮箱 HR@linkwina.com
+    if (!formData.to_email || formData.to_email.trim() === "") {
+      formData.to_email = "HR@linkwina.com";
+    }
+
+    try {
+      const res = await fetch("https://my-netlify-hof.netlify.app/.netlify/functions/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        statusMsg.textContent = "✅ 已发送并同步记录到 Notion！";
+        form.reset();
+      } else {
+        statusMsg.textContent = `❌ 发送失败：${result.error || "未知错误"}`;
       }
-    });
+    } catch (err) {
+      statusMsg.textContent = "❌ 网络错误，请稍后重试";
+      console.error(err);
+    }
+  });
   </script>
 </body>
-
 
 </html> 
