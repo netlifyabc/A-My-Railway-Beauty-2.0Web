@@ -176,7 +176,7 @@
 
       const result = await res.json();
       if (res.ok) {
-        statusMsg.textContent = "✅ 已发送并同步记录到 Notion！";
+        statusMsg.textContent = "✅ 已发送并汇总Datebase！"; 
         form.reset();
       } else {
         statusMsg.textContent = `❌ 发送失败：${result.error || "未知错误"}`;
@@ -186,7 +186,7 @@
       console.error(err);
     }
   });
-  </script>
+  </script> 
 </body>
 
 </html> 
