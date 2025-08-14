@@ -6,127 +6,160 @@
   <title>📨 LinkWina 内部发送</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg-gradient: linear-gradient(135deg, #d0eaff, #f1eaff);
-      --card-bg: rgba(255, 255, 255, 0.55);
-      --text: #333;
-      --accent: #7a5cf0;
-      --muted: #666;
-      --border-radius: 16px;
-      --shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-      --glass-blur: blur(20px);
-    }
+ :root {
+  --bg-gradient: linear-gradient(135deg, #d0eaff, #f1eaff);
+  --card-bg: rgba(255, 255, 255, 0.55);
+  --text: #333;
+  --accent: #7a5cf0;
+  --muted: #666;
+  --border-radius: 16px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --glass-blur: blur(20px);
+}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-    body {
-      background: var(--bg-gradient);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: var(--text);
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
+html, body {
+  height: 100%;
+}
 
-    .form-card {
-      background: var(--card-bg);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      border-radius: var(--border-radius);
-      box-shadow: var(--shadow);
-      padding: 40px;
-      max-width: 540px;
-      width: 100%;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-    }
+body {
+  background: var(--bg-gradient);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 40px 20px 20px 20px; /* 上40px留空，避免紧贴顶部 */
+  overflow-y: hidden; /* 去掉右边滚动条 */
+}
 
-    h1 {
-      font-size: 1.9rem;
-      color: var(--accent);
-      font-weight: 600;
-      margin-bottom: 2rem;
-      text-align: center;
-      letter-spacing: 0.5px;
-    }
+.container {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 20px;
+  overflow: visible; /* 确保内容不被剪裁 */
+}
 
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 0.9rem;
-      color: var(--muted);
-    }
+.form-card {
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 40px;
+  max-width: 540px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
 
-    input, textarea {
-      width: 100%;
-      padding: 14px;
-      font-size: 1rem;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      border-radius: 10px;
-      margin-bottom: 20px;
-      background-color: rgba(255, 255, 255, 0.9);
-      color: #222;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
+h1 {
+  font-size: 1.9rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 2rem;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
 
-    input:focus, textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(122, 92, 240, 0.3);
-      outline: none;
-    }
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
 
-    textarea {
-      resize: none;
-      height: 120px;
-    }
+input, textarea {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #222;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
 
-    .submit-btn {
-      width: 100%;
-      background: linear-gradient(135deg, #7a5cf0, #a78afc);
-      color: white;
-      font-size: 1rem;
-      padding: 14px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      font-weight: 600;
-      box-shadow: 0 6px 16px rgba(122, 92, 240, 0.4);
-    }
+input:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(122, 92, 240, 0.3);
+  outline: none;
+}
 
-    .submit-btn:hover {
-      background: linear-gradient(135deg, #664ce0, #9474f8);
-      box-shadow: 0 8px 22px rgba(122, 92, 240, 0.5);
-      transform: translateY(-1px);
-    }
+textarea {
+  resize: none;
+  height: 120px;
+}
 
-    .status-message {
-      margin-top: 20px;
-      text-align: center;
-      font-size: 0.95rem;
-      color: var(--muted);
-    }
+.submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #7a5cf0, #a78afc);
+  color: white;
+  font-size: 1rem;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(122, 92, 240, 0.4);
+}
 
-    @media (max-width: 600px) {
-      .form-card {
-        padding: 28px;
-      }
+.submit-btn:hover {
+  background: linear-gradient(135deg, #664ce0, #9474f8);
+  box-shadow: 0 8px 22px rgba(122, 92, 240, 0.5);
+  transform: translateY(-1px);
+}
 
-      h1 {
-        font-size: 1.6rem;
-      }
+.status-message {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
 
-      input, textarea {
-        font-size: 0.95rem;
-        padding: 12px;
-      }
+.page-footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+  user-select: none;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  padding: 10px 0;
+  background: transparent;
+  position: sticky;
+  bottom: 0;
+  /* 确保页脚在最底部且不挡内容 */
+}
 
-      .submit-btn {
-        font-size: 0.95rem;
-        padding: 12px;
-      }
-    }
+@media (max-width: 600px) {
+  .form-card {
+    padding: 28px;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+  }
+
+  input, textarea {
+    font-size: 0.95rem;
+    padding: 12px;
+  }
+
+  .submit-btn {
+    font-size: 0.95rem;
+    padding: 12px;
+  }
+}
+
   </style> 
   
 </head>
