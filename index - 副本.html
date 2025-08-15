@@ -134,38 +134,21 @@ h2 {
   color: #1f1a30;
 }
 
-.insight {
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: #2b2346;
-  margin: 12px 0;
-}
-
-
 .belief-button {
-  display: inline-flex;          /* 改为 flex 方便居中 */
-  align-items: center;           /* 垂直居中 */
-  justify-content: center;       /* 水平居中 */
+  display: inline-block;
   padding: 4px 10px;
-
-  width: 65px;                   /* 固定宽度 */
   margin-right: 4px;
   background-color: #6a4fb6;
   color: white;
   border-radius: 16px;
   font-size: 0.9rem;
-  font-weight: 600;              /* 字体加粗，和 .insight 对齐 */
-  font-family: inherit;          /* 继承父元素字体，保证统一 */
   text-decoration: none;
   transition: background-color 0.3s ease;
-  white-space: nowrap;           /* 防止换行 */
 }
 
 .belief-button:hover {
   background-color: #593aa5;
 }
-
-
 
 /* 页脚固定底部，始终可见 */
 
@@ -249,18 +232,12 @@ h2 {
     <div class="statement">
       LinkWina 是我在数字系统开发经验中的一次自然延伸。<br>
       <span class="highlight">Link</span> 代表技术连接、数据自动化，也代表人与人之间的信任流动。<br>
-      <span class="highlight">Wina</span> 源自过往品牌的延续，象征陪伴、赋能与共赢。<br>  
- <p class="insight">
-  致力于成就顶级智能系统：因90%的企业只有展示型网站，根本触达不到 
-  <a href="https://linkwina.com/System/" class="belief-button">系统层</a>。
-</p>
+      <span class="highlight">Wina</span> 源自过往品牌的延续，象征陪伴、赋能与共赢。<br><br>
 
       免费开放20名额，欢迎随意输入邮箱与数据测试。正式版有安全Token，用户数据100%私有化，开发者无权访问。<br> 
       我主营跨境赛道，出于联结兴趣开发此产品，目前没有将这个子品牌商业化的计划，无功利运作。<br> 
       这更像是一种“数字化能力的共享”，让有需要的朋友，可以轻松使用自动化招聘流程、与人才联结场景。<br><br>
-      无愧于心，顺应自然，坦然无畏，作为民营企业创业者的一员，我们值得越来越好。欢迎联结，秒级 <a href="https://linkwina.com/EmailATS/" class="belief-button">探索✉️</a>。
-
-      <br>
+      无愧于心，顺应自然，坦然无畏，作为民营企业创业者的一员，我们值得越来越好。<br>
       祝愿中国的民营企业，得到世界的祝福，坦然、开放而无畏。<br><br>
 
 <a href="#" id="play-audio" class="belief-button">我相信</a>在未来的世界，真正有价值的绝对不是资本物化与标签，更需要 
@@ -276,10 +253,13 @@ h2 {
 
       </section>   
 
+
      <div class="page-footer">
       <div>© 2025 LinkWina · 专注企业级自动化服务 · 以成就顶尖智能为使命</div>
     </div>
   </div>
+
+
 
 <script>
   document.getElementById('play-audio').addEventListener('click', function (e) {
