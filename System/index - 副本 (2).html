@@ -194,23 +194,48 @@ h5 {
   padding-left: 12px;
 }
  
-    @media (max-width: 768px) {
-      header h1 {
-        font-size: 1.8rem;
-      }
+@media (max-width: 768px) {
+  html, body {
+    width: 100%;
+    overflow-x: hidden;
+  }
 
-      table, th, td {
-        font-size: 0.85rem;
-      }
+  header h1 {
+    font-size: 1.8rem;
+  }
 
-      main.chatgpt-main {
-        padding: 28px 16px;
-      }
+  main.chatgpt-main {
+    padding: 24px 12px;
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
 
-      .chatgpt-section {
-        padding: 20px;
-      }
-    }
+  .chatgpt-section {
+    padding: 20px 16px;
+  }
+
+  table {
+    table-layout: fixed;
+    word-break: break-word;
+  }
+
+  table th,
+  table td {
+    font-size: 0.85rem;
+    padding: 12px 10px;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  h5 {
+    font-size: 1.05rem;
+  }
+}
+
 
   </style>
 </head>
@@ -429,6 +454,7 @@ h5 {
   <footer>
     &copy; 2025 LinkWina · 系统认知突围 · 成就顶尖智能 
   </footer>
-</body>
 
+
+</body> 
 </html>   
